@@ -83,3 +83,21 @@ Each milestone records: what changed, commands run with real results, risks, rem
 **Found:** tall furniture (2.2 m wardrobe) stands above cut-away walls and can hide items in neighbouring rooms from the default camera — recorded as a limitation; test retargeted to an unobstructed item. A session interruption occurred mid-milestone; on resume the working tree was checked (only the two M3 files modified) and checks re-run.
 
 **Risks / remaining:** no transform gizmo for rotation in 3D (rotation via inspector, Q key, or the 2D handle). No snapping guides in 3D beyond 5 cm steps.
+
+## M4 — Walkthrough (commit `0f94fbd`)
+
+**Changes:** `src/editor/scene/Walkthrough.tsx`, `walkInput.ts`, `src/editor/ui/WalkHud.tsx`, store walk state, `roomCentres` in `src/engine/walk.ts`, `tests/e2e/editor/walk.spec.ts`.
+
+**Commands & results:**
+| Command | Result |
+|---|---|
+| `npx tsc -b` / `npx oxlint` | pass / 0 warnings |
+| `npx vitest run` | 50/50 |
+| `npx playwright test` | 35 passed, 2 skipped (touch test on desktop; mobile-layout test on desktop) |
+| `npm audit` / Semgrep / Gitleaks | 0 / 0 / no leaks |
+
+**Measured (desktop, AMD Radeon 610M iGPU, Chromium via ANGLE D3D11):** frame time while walking median 16.7 ms, p95 16.7 ms, max 16.8 ms (180 frames). E2E asserts p95 < 100 ms while moving.
+
+**Observations:** the hall door leaf is rendered open at 85° into the hall and fills much of the starting view; window views show a plain sky colour (no exterior environment). Pointer lock is requested on click; where it is refused (headless, iframes) drag-to-look is used.
+
+**Risks / remaining:** single-level walkthrough (no stairs yet); no head bob or footstep audio (intentionally); the visitor can't open/close doors (doors are always open).

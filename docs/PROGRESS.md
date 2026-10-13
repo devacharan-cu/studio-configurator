@@ -11,5 +11,7 @@ Branch: `feature/building-engine` (remote: github.com/devacharan-cu/studio-confi
 
 | M3 | Direct 3D editing (walls, openings, furniture) + 3D placement tools | Done | `a248826` | 50/50 unit; E2E 31 passed + 1 skip; typecheck, lint, audit 0, Semgrep 0, Gitleaks 0 |
 
+| M4 | First-person walkthrough: collision, rooms, transitions, touch | Done | `0f94fbd` | 50/50 unit; E2E 35 passed + 2 skips (device-specific); lint, audit 0, Semgrep 0, Gitleaks 0 |
+
 ## Next
-M4 — first-person walkthrough with collision, room awareness, mode transitions; touch controls.
+M5 — performance measurement on the multi-room home, visual/UX review pass, documentation (ARCHITECTURE, TESTING, SECURITY, README) and the final report.
