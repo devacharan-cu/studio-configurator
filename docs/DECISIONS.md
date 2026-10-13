@@ -47,3 +47,34 @@ Every asset entry carries an SPDX licence, attribution and source. Only CC0 (Pol
 (Khronos/Wayfair sofa, credited in-app) third-party models are used. Kitchen, bed, wardrobe, bathroom
 fixtures and rug are modelled in code and labelled as such. No CC0 models of adequate quality were
 found for them.
+
+## D6 — 2D plan in SVG (not Canvas)
+
+The plan is a single SVG whose `viewBox` is in metres. That gives exact shared units with the model,
+per-element hit-testing (walls, corners, openings, items are real elements), crisp non-scaling strokes,
+accessible structure and deterministic E2E targeting. A Canvas renderer would only win at thousands
+of elements; a house has tens to hundreds. **Revisit** for very large multi-unit buildings.
+
+## D7 — No post-processing
+
+Phase 1 measured 500–880 ms GPU stalls from the EffectComposer (with or without AO) on an integrated
+GPU. The editor renders directly with Neutral tone mapping and MSAA; furniture grounding uses cheap
+contact-shadow quads. Measured result on the multi-room home: no frames over 100 ms in any interaction.
+
+## D8 — Select first, then drag (3D)
+
+In 3D, walls fill most of the view, so drag-to-edit on first contact would turn every attempt to orbit
+into a structural edit. A first click selects; dragging an already-selected element edits it. 2D keeps
+direct drag (no camera conflict there).
+
+## D9 — Phones: view and walk, not structural editing
+
+Structural editing needs precision pointing and screen room; on < 768 px the editor opens on the 3D
+view with the walkthrough (touch joystick + look pad) and hides the tool rail. Tablets and desktops get
+the full editor.
+
+## D10 — Garden Room kept, isolated
+
+The Phase 1 configurator is a separate module at `/garden-room` with its own tests. It is not built on
+the new engine (it is a single curated scene); it remains as a working client-presentation demo and
+regression baseline until the presentation mode is rebuilt on the building model.

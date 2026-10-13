@@ -92,7 +92,8 @@ export const useEditor = create<EditorState>()((set, get) => {
     hover: null,
     tool: 'select',
     placeAsset: null,
-    view: 'split',
+    // Phones open on the 3D view (presentation/walkthrough first); larger screens on the split editor.
+    view: typeof window !== 'undefined' && window.innerWidth < 768 ? '3d' : 'split',
     camera: 'orbit',
     level: firstLevel(init.project),
     cutaway: true,

@@ -47,7 +47,8 @@ function fitView(p: Project, level: Id, w: number, h: number): View {
   const xs = nodes.map((n) => n.x)
   const ys = nodes.map((n) => n.y)
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
-  const s = Math.min((w - 120) / Math.max(1, x1 - x0), (h - 120) / Math.max(1, y1 - y0))
+  const margin = Math.min(120, 0.18 * Math.min(w, h))
+  const s = Math.max(4, Math.min((w - margin) / Math.max(1, x1 - x0), (h - margin) / Math.max(1, y1 - y0)))
   return { s, x: (x0 + x1) / 2 - w / 2 / s, y: (y0 + y1) / 2 - h / 2 / s }
 }
 
@@ -443,17 +444,33 @@ export function PlanView() {
           )
         })}
 
-        {/* room labels */}
+        {/* room labels — shed detail when the room is small on screen so labels never collide */}
         {rooms.map((r) => {
           const m = roomMetrics(project, r.id)
+          const widthPx = Math.min(m.width, m.depth * 2.5) * v.s
+          if (widthPx < 42) return null
+          const showArea = widthPx >= 80
           return (
             <g key={`lbl-${r.id}`} pointerEvents="none">
-              <text x={m.labelAt.x} y={m.labelAt.y - px(7)} fontSize={px(13)} textAnchor="middle" className="fill-ink font-semibold" data-room-label={r.name}>
+              <text
+                x={m.labelAt.x}
+                y={m.labelAt.y - (showArea ? px(7) : 0)}
+                fontSize={px(widthPx < 70 ? 10.5 : 13)}
+                textAnchor="middle"
+                dominantBaseline={showArea ? 'auto' : 'middle'}
+                className="fill-ink font-semibold"
+                stroke="#f7f5f1"
+                strokeWidth={px(3)}
+                paintOrder="stroke"
+                data-room-label={r.name}
+              >
                 {r.name}
               </text>
-              <text x={m.labelAt.x} y={m.labelAt.y + px(9)} fontSize={px(11)} textAnchor="middle" className="fill-mute" data-room-area={r.name}>
-                {fmtArea(m.netArea)}
-              </text>
+              {showArea && (
+                <text x={m.labelAt.x} y={m.labelAt.y + px(9)} fontSize={px(11)} textAnchor="middle" className="fill-mute" stroke="#f7f5f1" strokeWidth={px(3)} paintOrder="stroke" data-room-area={r.name}>
+                  {fmtArea(m.netArea)}
+                </text>
+              )}
             </g>
           )
         })}

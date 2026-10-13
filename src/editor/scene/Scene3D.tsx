@@ -53,6 +53,7 @@ function Lights({ project, level }: { project: Project; level: string }) {
 /** Orbit / overhead controls; framed on the building when it first loads or the view is reset. */
 function OrbitRig({ enabled, frameKey }: { enabled: boolean; frameKey: number }) {
   const ref = useRef<CameraControlsImpl>(null)
+  const getThree = useThree((s) => s.get)
   const level = useEditor((s) => s.level)
   useEffect(() => {
     const c = ref.current
@@ -60,9 +61,12 @@ function OrbitRig({ enabled, frameKey }: { enabled: boolean; frameKey: number })
     const b = planBounds(useEditor.getState().history.present, level)
     const cx = (b.x0 + b.x1) / 2
     const cz = (b.y0 + b.y1) / 2
-    const span = Math.max(b.x1 - b.x0, b.y1 - b.y0)
+    // composed for landscape; narrow/portrait viewports step back so the whole building stays in frame
+    const { width, height } = getThree().size
+    const fit = Math.max(1, Math.sqrt(1.35 / Math.max(0.3, width / Math.max(1, height))))
+    const span = Math.max(b.x1 - b.x0, b.y1 - b.y0) * fit
     c.setLookAt(cx + span * 0.75, span * 1.25, cz + span * 1.25, cx, 0, cz, frameKey > 0)
-  }, [level, frameKey])
+  }, [level, frameKey, getThree])
   return (
     <CameraControls
       ref={ref}
@@ -95,6 +99,11 @@ function SceneContent({ frameKey }: { frameKey: number }) {
   const drag = useRef<DragState | null>(null)
 
   useEffect(() => invalidate(), [project, invalidate])
+  const gl = useThree((s) => s.gl)
+  useEffect(() => {
+    // Development-only renderer handle for draw-call measurements; stripped from production builds.
+    if (import.meta.env.DEV) (window as unknown as { __gl: THREE.WebGLRenderer }).__gl = gl
+  }, [gl])
 
   // Warm the cache for every library asset once the scene is up.
   useEffect(() => {

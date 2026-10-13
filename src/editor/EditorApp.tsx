@@ -60,8 +60,8 @@ function TopBar({ onFrame }: { onFrame: () => void }) {
         <span className="grid h-7 w-7 place-items-center rounded-lg bg-ink font-display text-[17px] text-paper" aria-hidden="true">
           R
         </span>
-        <div className="leading-tight">
-          <p className="text-[13px] font-semibold">{history.present.name}</p>
+        <div className="hidden leading-tight sm:block">
+          <p className="max-w-[28vw] truncate text-[13px] font-semibold">{history.present.name}</p>
           <p className="text-[10.5px] text-mute" data-testid="save-state">
             {saveState === 'saved' ? 'Saved in this browser' : saveState === 'unsaved' ? 'Saving…' : 'Couldn’t save — export to keep a copy'}
           </p>
@@ -69,7 +69,8 @@ function TopBar({ onFrame }: { onFrame: () => void }) {
       </div>
       <div className="relative">
         <button type="button" className="btn-ghost h-8 px-2.5 text-[12.5px]" onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-haspopup="menu">
-          <Icon name="menu" size={16} /> Project
+          <Icon name="menu" size={16} /> <span className="hidden sm:inline">Project</span>
+          <span className="sr-only sm:hidden">Project</span>
         </button>
         {menu && (
           <div role="menu" className="absolute top-9 left-0 z-30 w-64 rounded-xl border border-line bg-paper p-1.5 shadow-xl">
@@ -123,7 +124,8 @@ function TopBar({ onFrame }: { onFrame: () => void }) {
             disabled={Object.keys(history.present.rooms).length === 0}
             title="Walk through the building in first person"
           >
-            <Icon name="walk" size={15} /> Walk through
+            <Icon name="walk" size={15} /> <span className="hidden sm:inline">Walk through</span>
+            <span className="sr-only sm:hidden">Walk through</span>
           </button>
         )}
         {view !== 'plan' && camera === 'orbit' && (
@@ -131,10 +133,11 @@ function TopBar({ onFrame }: { onFrame: () => void }) {
             type="button"
             aria-pressed={cutaway}
             onClick={() => setCutaway(!cutaway)}
-            className={`btn h-8 border px-2.5 text-[12px] ${cutaway ? 'border-ink bg-ink text-paper' : 'border-line text-ink-soft'}`}
+            className={`btn hidden h-8 border px-2.5 text-[12px] sm:inline-flex ${cutaway ? 'border-ink bg-ink text-paper' : 'border-line text-ink-soft'}`}
             title="Lower walls to see into rooms"
           >
-            <Icon name="cut" size={15} /> Cut-away
+            <Icon name="cut" size={15} /> <span className="hidden md:inline">Cut-away</span>
+            <span className="sr-only md:hidden">Cut-away</span>
           </button>
         )}
         <div className="flex rounded-full bg-linen p-0.5" role="group" aria-label="View">
@@ -353,7 +356,12 @@ export default function EditorApp() {
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-paper text-ink">
       <TopBar onFrame={() => setFrameKey((k) => k + 1)} />
       <div className="flex min-h-0 flex-1">
-        {camera === 'orbit' && <ToolRail library={library} setLibrary={setLibrary} />}
+        {/* Structural editing tools need a pointer and room; phones get viewing + walkthrough. */}
+        {camera === 'orbit' && (
+          <div className="hidden md:flex">
+            <ToolRail library={library} setLibrary={setLibrary} />
+          </div>
+        )}
         {library && <Library onClose={() => setLibrary(false)} />}
         <main className="flex min-w-0 flex-1">
           {showPlan && (

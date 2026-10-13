@@ -1,4 +1,66 @@
-# Testing record — Phase 1 (2026-10-13)
+# Testing record
+
+## Building editor milestone (2026-10-13)
+
+Environment: Windows 11, Node 24.20, Playwright 1.64 Chromium on a real GPU (AMD Radeon 610M integrated,
+ANGLE/D3D11). E2E runs against the **production build** served with the production security headers.
+
+### Layers
+
+| Layer | Where | What it proves |
+|---|---|---|
+| Engine unit (27) | `tests/unit/engine/` | room creation (shared walls, T-junction splits), overlap/self-crossing/size rejection without mutation, mitre geometry, wall solids with opening holes, shared-wall moves resizing both rooms, wall runs without notches, opening re-anchoring and fit, furniture pushed by walls, numeric room size, corner moves, room deletion keeping shared walls, history, JSON round-trip, hostile documents (incl. `__proto__`), template validity and room connectivity, walkthrough collision (walls, doorways, windows), performance budgets |
+| Garden Room unit (26) | `tests/unit/garden-room/`, `tests/unit/headers.test.ts` | Phase 1 regression + header parity |
+| Editor E2E — plan (8) | `tests/e2e/editor/plan.spec.ts` | clean load; 2D wall drag → model + room areas + 3D pixels; draw room → shared walls + 3D; rejected/constrained edits explained, model valid; doors/windows added and moved along walls (incl. rejection); numeric room width moves neighbour; undo/redo/reload; corrupted save refused |
+| Editor E2E — 3D (4) | `tests/e2e/editor/scene3d.spec.ts` | 3D click selects in all views; first drag only orbits; 3D wall drag → model → 2D (+ one-step undo); 3D furniture drag; 3D placement of furniture and doors |
+| Editor E2E — walkthrough (4) | `tests/e2e/editor/walk.spec.ts` | walk through a doorway into the next room; walls, furniture and windows block; go-to-room; frame p95 < 100 ms while moving; exit back to editing; touch joystick (Pixel 7) |
+| Garden Room E2E (19 + 1 skip) | `tests/e2e/garden-room/` | Phase 1 workflows at `/garden-room` |
+
+3D picking in E2E reproduces the editor's deterministic initial camera with three.js in the test runner
+(`tests/e2e/editor/camera.ts`) to click real geometry — no test-only hooks ship in the app.
+The canonical model is read from the validated autosave in local storage (the same document a reload restores).
+
+### Results (final run)
+
+| Command | Result |
+|---|---|
+| `npx tsc -b` | pass |
+| `npx oxlint` | 0 warnings |
+| `npx vitest run` | 53/53 |
+| `npx playwright test` | 35 passed, 2 skipped (device-specific tests on the desktop project) |
+| `npm run build` | pass (three ≈ 401 KB gzip, editor ≈ 52 KB gzip, Garden Room ≈ 18 KB gzip; lazy-loaded per route) |
+
+### Performance (measured, not estimated)
+
+| Measurement | Result |
+|---|---|
+| `moveWall` + full validation, compact home (Node) | 0.79 ms |
+| `validateProject` | 0.31 ms |
+| all 19 wall solids regenerated | 0.29 ms |
+| one walkthrough collision step (25 capsules, 23 boxes) | 40 µs |
+| Browser: view switches / 2D wall drag / 3D orbit drag (240 frames each) | median 16.7 ms, p95 16.8 ms, max 16.8 ms, 0 frames > 100 ms |
+| Browser: walking (180 frames) | median 16.7 ms, p95 16.7 ms |
+| Plan visible after reload | 387 ms (localhost) |
+| Initial transfer | 3.6 MB |
+| Render cost, split view (incl. shadow pass) | 376 draw calls, 421k triangles, 174 geometries, 102 textures, 11 programs |
+
+All browser numbers are from one machine (integrated AMD GPU, 60 Hz display, so 16.7 ms is the vsync
+floor). Not measured: low-end phones, discrete GPUs, Firefox/Safari.
+
+### Defects found by review and testing in this milestone
+Wall memo missing its dependency signature; window glazing above cut-away walls; constrained drags not
+explained; "Saved" shown before saving; phones received an unusable split view; plan labels colliding at
+low zoom; 3D framing cropping in portrait; zod silently stripping `__proto__` (now rejected). Test bugs of
+my own (wrong area expectation, door-symbol click target, offset direction, occluded 3D target,
+camera-size mismatch with the library open) were fixed in the tests after confirming the engine was right.
+
+### Not verified
+Real iOS/Android devices; Firefox/Safari; screen readers; multi-level editing in the UI (schema/engine
+only); very large buildings (hundreds of rooms).
+
+---
+
+## Phase 1 — Garden Room (2026-10-13)
 
 Environment: Windows 11, Node 24.20, Chromium (Playwright 1.64) with real GPU (AMD Radeon 610M via ANGLE/D3D11).
 

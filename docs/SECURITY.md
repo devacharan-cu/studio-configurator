@@ -1,4 +1,42 @@
-# Security review — Phase 1
+# Security review
+
+## Building editor milestone (2026-10-13)
+
+| Check | Result |
+|---|---|
+| `npm audit` | 0 vulnerabilities (one new runtime dependency: zod 4.6.7, MIT) |
+| Semgrep 1.180 (`p/javascript p/typescript p/react p/secrets p/owasp-top-ten`) over `src`, `tests` | 0 findings |
+| Gitleaks 8.30.1 over `src` and git history | no leaks |
+| E2E | corrupted/hostile saved project refused; Garden Room hostile-link and same-origin tests still pass |
+
+**Untrusted input surfaces and handling**
+- *Project files (import) and autosave.* Imported files are capped at 5 MB, then:
+  - JSON parse;
+  - explicit rejection of `__proto__`, `constructor` and `prototype` keys at any depth (zod would
+    otherwise drop them silently);
+  - nesting depth limit;
+  - strict zod schema: id patterns, numeric ranges, string lengths, no unknown fields, key/id
+    agreement, ≤ 5000 entities per collection;
+  - version migration;
+  - the full structural `validateProject`.
+
+  A failure loads nothing and explains why. The editor still opens on the template.
+- *Names entered by users.* Room names are stripped of control characters, limited to 40 characters and
+  rendered as React text.
+- *Export.* A Blob download of `serializeProject`. The filename is reduced to `[\w-]`.
+- *Assets.* Loaded only from the same origin. The asset id must exist in the catalogue, so item asset
+  strings never become URLs. Draco is disabled, so no decoder is fetched from a CDN.
+- Dev-only handles (`__editor`, `__gl`) are behind `import.meta.env.DEV`; their absence from `dist/`
+  was verified.
+
+**Residual risks:** see the Phase 1 list below; they apply unchanged (`style-src 'unsafe-inline'`,
+`'wasm-unsafe-eval'` for meshopt, header configuration depends on the host). Imported projects are
+size-limited but a project at the entity limits could still be slow to render; there is no worker
+isolation for parsing.
+
+---
+
+## Phase 1 — Garden Room
 
 Scope: this repository only. There is no backend, no authentication and no outbound network calls.
 

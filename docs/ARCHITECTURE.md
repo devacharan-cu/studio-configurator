@@ -16,8 +16,8 @@ src/engine/        pure TypeScript, no React / three.js — unit-tested in Node
   walk.ts            walkthrough colliders + swept collision
   templates.ts       templates built through the public commands
   assets/            asset + finish metadata (licence, footprint, normalisation)
-src/editor/        React app: store, 2D plan (SVG), 3D view (R3F), walkthrough, UI   (from M2)
-src/garden-room/   Phase 1 configurator, preserved at /garden-room as a regression baseline (from M2)
+src/editor/        React app: store, 2D plan (SVG), 3D view (R3F), manipulator, walkthrough, UI
+src/garden-room/   Phase 1 configurator, preserved at /garden-room as a regression baseline
 ```
 
 ## Units & coordinates
@@ -100,3 +100,38 @@ the reason. 2D and 3D manipulators call the same commands, so they cannot diverg
 `serializeProject` → JSON. `parseProject` (import, local storage) rejects oversized input, prototype
 keys, unknown schema/versions, fails strict zod validation (ids, ranges, no extra fields, key/id
 match), migrates by version, and finally runs `validateProject`. Projects autosave to `localStorage`.
+
+## Rendering
+
+- **One material per finish**, shared by every wall/floor using it; textures tile at physical size via
+  metre UVs. Each wall is one mesh with material groups (left face, right face, trims, top).
+- **Incremental regeneration**: each wall mesh is memoised on a *signature* of everything that affects
+  it (its corners, every wall at its two junctions, its openings, the finishes on both sides, display
+  height). Dragging a wall rebuilds only the walls whose junctions changed.
+- **Cut-away** lowers walls to 1.15 m for the overhead view by passing `displayHeight` into the same
+  solid generator — the model's heights never change. Windows and frames are clipped to match.
+- **Lighting**: HDR environment + hemisphere + one shadow-casting sun fitted to the building bounds.
+  No post-processing (see D7). Per-item soft contact shadows ground furniture.
+- **Frame loop**: on-demand while editing (renders only on change); continuous during the walkthrough.
+
+## 3D editing
+
+Picking uses R3F pointer events on the derived meshes; selection is the same store value the 2D plan
+uses. A press on an *already selected* wall, opening or item starts an edit drag: the pointer ray is
+intersected with a horizontal plane through the grab point and the plan-space delta is turned into
+`moveWall` / `moveOpening` / `moveItem` — the same commands, previews and single-step commits as 2D.
+Camera controls are suspended only for that drag; a press on anything unselected orbits as normal.
+
+## Walkthrough
+
+`buildColliders` turns walls into capsules along their centrelines, interrupted at doors and passages
+(windows stay closed), plus furniture footprints taller than 25 cm. The visitor is a 0.25 m circle;
+`moveWithCollisions` sub-steps the motion (no tunnelling) and resolves penetrations iteratively, so the
+visitor slides along walls. Eye height 1.6 m above the current level. Room awareness uses the room
+polygons; "go to room" jumps to each room's interior point. Ceilings are shown while walking.
+
+## Performance (measured — see TESTING.md)
+
+Engine, compact home (Node): `moveWall` + full validation 0.79 ms; `validateProject` 0.31 ms; all 19
+wall solids 0.29 ms; one collision step 40 µs. Browser (AMD Radeon 610M iGPU): 2D wall drag, 3D orbit,
+view switches and walking all held median/p95 16.7/16.8 ms with zero frames over 100 ms.

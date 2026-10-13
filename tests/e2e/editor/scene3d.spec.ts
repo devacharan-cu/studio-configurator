@@ -67,6 +67,8 @@ test.describe('editor: direct 3D editing → model → 2D', () => {
   test('the library places furniture where you click on a 3D floor; tools add doors on 3D walls', async ({ page }) => {
     await page.getByRole('button', { name: 'Furnish' }).click()
     await page.locator('[data-asset="plant-large"]').click()
+    // close the panel (the placement tool stays armed) so the 3D canvas is back at the size its camera was framed for
+    await page.getByRole('button', { name: 'Close library' }).click()
     const floor = await projectToScreen(page, p, [8.4, 0, 3.8]) // kitchen floor, clear of the island
     await page.mouse.click(floor.x, floor.y)
     let q = await saved(page)
