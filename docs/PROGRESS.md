@@ -13,5 +13,9 @@ Branch: `feature/building-engine` (remote: github.com/devacharan-cu/studio-confi
 
 | M4 | First-person walkthrough: collision, rooms, transitions, touch | Done | `0f94fbd` | 50/50 unit; E2E 35 passed + 2 skips (device-specific); lint, audit 0, Semgrep 0, Gitleaks 0 |
 
-## Next
-M5 — performance measurement on the multi-room home, visual/UX review pass, documentation (ARCHITECTURE, TESTING, SECURITY, README) and the final report.
+| M5 | Performance evidence, responsive/UX review fixes, documentation | Done | `61839e0` | 53/53 unit; E2E 35 passed + 2 skips; typecheck, lint, build, audit 0, Semgrep 0 (114 rules/70 files), Gitleaks (src + history) 0 |
+
+## Recommended next milestone
+**M6 — Presentation & review mode on the building model.** Rebuild the Garden Room's client flow (curated, approved options; save/compare variants; share link; structured brief) on top of the new engine, so a builder can publish a version of a real home and a client can walk it, choose from approved finishes and leave feedback. It reuses everything proven here (model, commands, walkthrough) and is the step that lets the product be validated with real builders and studios.
+
+Close behind: multi-level UI with stairs (schema and commands already support levels); free-form polygon rooms and wall deletion; instancing/LOD for repeated furniture (draw calls 376, triangles 421k today).

@@ -101,3 +101,24 @@ Each milestone records: what changed, commands run with real results, risks, rem
 **Observations:** the hall door leaf is rendered open at 85° into the hall and fills much of the starting view; window views show a plain sky colour (no exterior environment). Pointer lock is requested on click; where it is refused (headless, iframes) drag-to-look is used.
 
 **Risks / remaining:** single-level walkthrough (no stairs yet); no head bob or footstep audio (intentionally); the visitor can't open/close doors (doors are always open).
+
+## M5 — Performance, review fixes, documentation (commit `61839e0`)
+
+**Changes:** `tests/unit/engine/perf.test.ts`; responsive defaults and compact top bar (`store.ts`, `EditorApp.tsx`); plan label level-of-detail and fit margins (`PlanView.tsx`); aspect-aware orbit framing (`Scene3D.tsx`, mirrored in `tests/e2e/editor/camera.ts`); dev-only `__gl` probe (verified absent from `dist/`); README rewritten for the editor, Phase 1 README moved to `docs/GARDEN_ROOM.md`; ARCHITECTURE, DECISIONS (D6–D10), TESTING, SECURITY updated; screenshots under `docs/screenshots/editor/`.
+
+**Commands & results (final run):**
+| Command | Result |
+|---|---|
+| `npx tsc -b` / `npx oxlint` | pass / 0 warnings |
+| `npx vitest run` | 53/53 |
+| `npm run build` | pass |
+| `npx playwright test` | 35 passed, 2 skipped (device-specific) |
+| `npm audit` | 0 vulnerabilities |
+| Semgrep (5 rulesets) on `src`, `tests`, `scripts` | 0 findings / 114 rules / 70 files |
+| Gitleaks `git .` (full history) and `dir src` | no leaks |
+
+**Performance (measured):** see TESTING.md — engine edit 0.79 ms; browser p95 16.8 ms with 0 frames > 100 ms in drags, orbit, view switches and walking on an AMD Radeon 610M iGPU; 376 draw calls / 421k triangles in split view.
+
+**Found in review:** phone layout unusable in split view; colliding plan labels on tablet; portrait 3D framing cropped; one E2E test assumed a fixed canvas size while the library panel was open (fixed in the test).
+
+**Remaining issues:** single-level UI; rectangle-only room drawing; no 3D rotation gizmo; tall furniture occludes the cut-away overview; procedural fixtures are placeholder quality; only Chromium tested; not tested on physical mobile devices.
