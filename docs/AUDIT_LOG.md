@@ -40,3 +40,28 @@ Each milestone records: what changed, commands run with real results, risks, rem
 **Found during the milestone:** zod silently strips `__proto__` keys → added explicit rejection (test). Two test expectations of mine were wrong (area sum under a T-junction move is not conserved) — fixed the test, not the engine.
 
 **Risks / remaining:** junction mitres fall back to square ends beyond a 4× limit (very acute angles are rejected anyway at < 10°). Furniture push works per inner face — can leave items in a corner overlapping slightly in concave rooms (warning emitted). Multi-level exists in the schema only.
+
+## M2 — Editor shell, 2D plan, derived 3D (commit `2046f23`)
+
+**Changes:** `src/editor/` (store, SVG plan editor, R3F scene derived from the engine, inspector, library, shell). Garden Room moved under `src/garden-room/` and routed at `/garden-room` (`src/Root.tsx`); its unit tests and E2E tests were moved and repointed, not rewritten. Correction: the M0 commit is `f37f00f` (an earlier PROGRESS entry mistyped it).
+
+**Commands & results:**
+| Command | Result |
+|---|---|
+| `npx tsc -b` | pass |
+| `npx oxlint` | 0 warnings |
+| `npx vitest run` | 50/50 |
+| `npx playwright test` (production build + headers) | 27 passed, 1 skipped (intentional) — 8 editor + 19 Garden Room across desktop/tablet/mobile |
+| `npm run build` | pass (three chunk 401 KB gzip; editor 51 KB gzip) |
+| `npm audit` | 0 vulnerabilities |
+| Semgrep (js, ts, react, secrets, owasp) on `src`, `tests` | 0 findings / 114 rules / 67 files |
+| Gitleaks on `src` | no leaks |
+
+**Defects found and fixed during the milestone:**
+- Wall geometry memo omitted its signature → moving a shared corner would not have rebuilt neighbouring walls (fixed before first run).
+- Window glazing/frames extended above cut-away walls (fixed, clipped to displayed height).
+- Constrained drags committed silently → now explained ("Stopped at the last valid position — …").
+- "Saved" label shown before anything was saved → project now persisted on open.
+- Two E2E test bugs of mine (click target on a door symbol; offset direction assumption) — fixed in the tests; the engine behaved correctly in both.
+
+**Risks / remaining:** 3D direct manipulation not yet implemented (M3). Plan editor is mouse/pen-first; touch pinch-zoom on the plan is not implemented. A leftover Vite dev server from Phase 1 was found on port 5173 and stopped before testing.
