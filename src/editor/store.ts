@@ -37,6 +37,8 @@ interface EditorState {
   cutaway: boolean
   notices: Notice[]
   saveState: SaveState
+  /** Walkthrough HUD state: the room the visitor is in, and teleport requests. */
+  walk: { room: string | null; goto: { x: number; y: number; nonce: number } | null; returnView: ViewMode }
 
   /** Apply a command result: commit it (one undo step) or report why it was rejected. */
   run: (result: CommandResult) => boolean
@@ -52,6 +54,10 @@ interface EditorState {
   setView: (v: ViewMode) => void
   setCamera: (c: CameraMode) => void
   setCutaway: (on: boolean) => void
+  enterWalk: () => void
+  exitWalk: () => void
+  setWalkRoom: (name: string | null) => void
+  walkTo: (x: number, y: number) => void
   notify: (tone: Notice['tone'], text: string) => void
   dismiss: (id: number) => void
 }
@@ -92,6 +98,7 @@ export const useEditor = create<EditorState>()((set, get) => {
     cutaway: true,
     notices: [],
     saveState: 'saved',
+    walk: { room: null, goto: null, returnView: 'split' },
 
     run: (result) => {
       if (!result.ok) {
@@ -143,6 +150,15 @@ export const useEditor = create<EditorState>()((set, get) => {
     setView: (view) => set({ view }),
     setCamera: (camera) => set({ camera }),
     setCutaway: (cutaway) => set({ cutaway }),
+    enterWalk: () => {
+      const { view } = get()
+      set({ camera: 'walk', view: '3d', selection: null, preview: null, walk: { room: null, goto: null, returnView: view } })
+    },
+    exitWalk: () => set((s) => ({ camera: 'orbit', view: s.walk.returnView })),
+    setWalkRoom: (room) => {
+      if (get().walk.room !== room) set((s) => ({ walk: { ...s.walk, room } }))
+    },
+    walkTo: (x, y) => set((s) => ({ walk: { ...s.walk, goto: { x, y, nonce: (s.walk.goto?.nonce ?? 0) + 1 } } })),
     notify: (tone, text) => {
       const id = ++noticeSeq
       set((s) => ({ notices: [...s.notices.slice(-2), { id, tone, text }] }))

@@ -110,3 +110,10 @@ export function currentRoom(p: Project, level: Id, q: V2) {
   return roomAt(p, level, q)
 }
 
+
+/** A walkable point inside each room on a level, for "go to room" navigation. */
+export function roomCentres(p: Project, level: Id): { id: Id; name: string; at: V2 }[] {
+  return Object.values(p.rooms)
+    .filter((r) => r.level === level)
+    .map((r) => ({ id: r.id, name: r.name, at: interiorPoint(roomPolygon(p, r)) }))
+}

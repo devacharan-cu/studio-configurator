@@ -9,6 +9,7 @@ import { PlanView } from './plan/PlanView'
 import { currentProject, useEditor, type Tool, type ViewMode } from './store'
 import { Icon, type IconName } from './ui/icons'
 import { Inspector } from './ui/Inspector'
+import { WalkHud } from './ui/WalkHud'
 
 const Scene3D = lazy(() => import('./scene/Scene3D').then((m) => ({ default: m.Scene3D })))
 
@@ -114,6 +115,17 @@ function TopBar({ onFrame }: { onFrame: () => void }) {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        {camera === 'orbit' && (
+          <button
+            type="button"
+            className="btn-primary h-8 px-3 text-[12px]"
+            onClick={() => useEditor.getState().enterWalk()}
+            disabled={Object.keys(history.present.rooms).length === 0}
+            title="Walk through the building in first person"
+          >
+            <Icon name="walk" size={15} /> Walk through
+          </button>
+        )}
         {view !== 'plan' && camera === 'orbit' && (
           <button
             type="button"
@@ -320,9 +332,18 @@ function useShortcuts(setLibrary: (b: boolean) => void) {
 
 export default function EditorApp() {
   const view = useEditor((s) => s.view)
+  const camera = useEditor((s) => s.camera)
   const [library, setLibrary] = useState(false)
   const [frameKey, setFrameKey] = useState(0)
   useShortcuts(setLibrary)
+  // Leaving the walkthrough glides the orbit camera back to the overview.
+  useEffect(
+    () =>
+      useEditor.subscribe((s, prev) => {
+        if (prev.camera === 'walk' && s.camera === 'orbit') setFrameKey((k) => k + 1)
+      }),
+    [],
+  )
   useEffect(() => {
     document.title = 'Roomset — building editor'
   }, [])
@@ -332,7 +353,7 @@ export default function EditorApp() {
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-paper text-ink">
       <TopBar onFrame={() => setFrameKey((k) => k + 1)} />
       <div className="flex min-h-0 flex-1">
-        <ToolRail library={library} setLibrary={setLibrary} />
+        {camera === 'orbit' && <ToolRail library={library} setLibrary={setLibrary} />}
         {library && <Library onClose={() => setLibrary(false)} />}
         <main className="flex min-w-0 flex-1">
           {showPlan && (
@@ -345,10 +366,11 @@ export default function EditorApp() {
               <Suspense fallback={<div className="grid h-full place-items-center text-[12px] text-mute">Loading 3D…</div>}>
                 <Scene3D frameKey={frameKey} />
               </Suspense>
+              {camera === 'walk' && <WalkHud />}
             </section>
           )}
         </main>
-        <div className="hidden w-[300px] shrink-0 lg:block">
+        <div className={`w-[300px] shrink-0 ${camera === 'walk' ? 'hidden' : 'hidden lg:block'}`}>
           <Inspector />
         </div>
       </div>

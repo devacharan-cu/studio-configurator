@@ -182,7 +182,8 @@ export function Scene3D({ frameKey }: { frameKey: number }) {
         }}
         aria-label="3D view of the building"
       >
-        <color attach="background" args={['#ebe7e0']} />
+        {/* a pale sky outside the windows while walking; the studio backdrop while editing */}
+        <color attach="background" args={[camera === 'walk' ? '#dde5ea' : '#ebe7e0']} />
         <Suspense fallback={null}>
           <SceneContent frameKey={frameKey} />
         </Suspense>
