@@ -40,3 +40,16 @@ Conducted 2026-10-13. "Observed" = seen first-hand in a browser or fetched page 
 ## What was not verified
 - No competitor pricing, market size, or adoption figures were collected or are claimed.
 - IKEA Kreativ not inspected (URL 404). Planner 5D editor not inspected (sign-up required; account creation not permitted).
+
+---
+
+# Research — building engine milestone (2026-10-13)
+
+| Source | Verified finding | Influence |
+|---|---|---|
+| github.com/cvdlab/react-planner — `src/models.js` (read raw source) | Layers hold `vertices`, `lines` (walls, referencing 2 vertices + holes), `holes` (openings with `offset` along their line), `areas` (vertex lists), `items`; Immutable records + a `HistoryStructure`. MIT. Last commit 2019-11-03 (GitHub API). | Confirms vertex/wall graph + openings parametric on a host wall + rooms as vertex cycles + per-level layering. Not used as a dependency (unmaintained, Redux/Immutable). |
+| github.com/furnishup/blueprint3d | `model` (floorplan + items), `floorplanner` (2D), `three` (3D). README calls it a rushed prototype; todo list includes adding tests and removing jQuery. Last commit 2016-07-10. | Same corners/walls/rooms split; reinforces writing a tested kernel instead. |
+| github.com/mfogel/polygon-clipping | Martinez-Rueda-Feito boolean ops, MIT; README warns round-off can cause infinite loops (guarded by env limits). | Not needed: with non-crossing walls, room overlap reduces to interior-point tests (D1). |
+| github.com/gkjohnson/three-bvh-csg | Fast BVH CSG, MIT, "experimental, in progress"; needs two-manifold brushes; no interactive benchmarks; worker support on roadmap. | Rejected for openings (D2). |
+| Help pages: Space Designer 3D, Chief Architect Room Planner, pCon.planner (via search results) | Rooms auto-detected when walls close; drag a wall to resize a room; drag corners; doors/windows snap into the nearest wall; split-wall tools. | Matches our interaction model: draw room, drag wall/corner, click a wall to add doors/windows. Floorplanner's own help pages did not appear in search — not verified. |
+| cedreo.com/room-planner (fetched) | Product claims: 3D updates as you draw in 2D; live wall lengths and area table. Time-saving claims are marketing, unquantified. | Live dimensions and room areas in the plan; 2D/3D side by side. |
