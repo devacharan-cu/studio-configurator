@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GROUPS } from '../../src/domain/catalog'
+import { GROUPS } from '../../../src/garden-room/domain/catalog'
 import {
   defaultConfiguration,
   differingGroups,
@@ -7,8 +7,8 @@ import {
   sanitizeConfiguration,
   toSearchParams,
   toShareUrl,
-} from '../../src/domain/configuration'
-import { GROUP_IDS, type Configuration } from '../../src/domain/types'
+} from '../../../src/garden-room/domain/configuration'
+import { GROUP_IDS, type Configuration } from '../../../src/garden-room/domain/types'
 
 const alt: Configuration = {
   templateId: 'garden-room',

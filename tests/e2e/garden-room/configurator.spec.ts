@@ -22,7 +22,7 @@ const DEFAULTS: Rendered = {
 test.describe('3D room', () => {
   test('loads cleanly with the studio defaults, no console errors or failed requests', async ({ page }) => {
     const problems = watchProblems(page)
-    await page.goto('/')
+    await page.goto('/garden-room')
     await expect(page.getByRole('status').filter({ hasText: 'Setting the scene' })).toBeVisible()
     await waitForScene(page)
     expect(await rendered(page)).toEqual(DEFAULTS)
@@ -40,7 +40,7 @@ test.describe('3D room', () => {
 
   for (const [group, option] of CASES) {
     test(`changing ${group} changes the 3D scene and nothing else`, async ({ page }) => {
-      await page.goto('/')
+      await page.goto('/garden-room')
       await waitForScene(page)
       const before = await canvasShot(page)
       await chooseDesktop(page, group, option)
@@ -56,7 +56,7 @@ test.describe('3D room', () => {
   }
 
   test('a sequence of changes accumulates; none resets another', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/garden-room')
     await waitForScene(page)
     await chooseDesktop(page, 'sofa', 'curve-velvet-midnight')
     await chooseDesktop(page, 'flooring', 'smoked-oak-plank')
@@ -69,7 +69,7 @@ test.describe('3D room', () => {
   })
 
   test('camera: orbit, zoom and preset views work and keep the configuration', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/garden-room')
     await waitForScene(page)
     await chooseDesktop(page, 'sofa', 'arlo-corner-boucle')
     await expectRendered(page, { sofa: 'arlo-corner-boucle' })
@@ -103,7 +103,7 @@ test.describe('3D room', () => {
   })
 
   test('clicking a piece in the room opens its options', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/garden-room')
     await waitForScene(page)
     await page.getByRole('button', { name: 'Plan' }).click()
     await page.waitForTimeout(1500)
@@ -119,7 +119,7 @@ test.describe('3D room', () => {
 
 test.describe('save, restore and compare', () => {
   test('two saved designs persist, restore exactly, and compare without being modified', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/garden-room')
     await waitForScene(page)
 
     await page.getByRole('button', { name: 'Save design' }).click()
@@ -173,7 +173,7 @@ test.describe('save, restore and compare', () => {
 
 test.describe('sharing', () => {
   test('a share link reproduces the design in a clean browser session', async ({ page, browser }) => {
-    await page.goto('/')
+    await page.goto('/garden-room')
     await waitForScene(page)
     await chooseDesktop(page, 'sofa', 'curve-velvet-midnight')
     await chooseDesktop(page, 'coffeeTable', 'ellipse-travertine')
@@ -199,7 +199,7 @@ test.describe('sharing', () => {
   })
 
   test('partially invalid links keep valid choices and explain the rest', async ({ page }) => {
-    await page.goto('/?v=1&room=garden-room&sofa=arlo-corner-boucle&table=does-not-exist&floor=limestone&wall=ink-blue')
+    await page.goto('/garden-room?v=1&room=garden-room&sofa=arlo-corner-boucle&table=does-not-exist&floor=limestone&wall=ink-blue')
     await waitForScene(page)
     await expect(page.getByText('Part of this link wasn’t recognised')).toBeVisible()
     await expect(page.getByText(/Coffee table, Rug/)).toBeVisible()
@@ -210,7 +210,7 @@ test.describe('sharing', () => {
 
   test('garbage and hostile links fail gracefully to the default design', async ({ page }) => {
     const problems = watchProblems(page)
-    await page.goto('/?room=kitchen&sofa=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E&table=__proto__')
+    await page.goto('/garden-room?room=kitchen&sofa=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E&table=__proto__')
     await waitForScene(page)
     await expect(page.getByText('This link couldn’t be opened')).toBeVisible()
     expect(await rendered(page)).toEqual(DEFAULTS)
@@ -221,7 +221,7 @@ test.describe('sharing', () => {
 
 test.describe('design brief', () => {
   test('validates input, then stores and confirms the brief locally', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/garden-room')
     await waitForScene(page)
     await chooseDesktop(page, 'rug', 'charcoal-herringbone')
     await page.getByRole('button', { name: 'Send brief' }).click()
@@ -265,7 +265,7 @@ test.describe('design brief', () => {
 test.describe('responsive @responsive', () => {
   test('mobile/tablet: tabs, option strip and actions work', async ({ page, isMobile }, testInfo) => {
     test.skip(testInfo.project.name === 'desktop', 'covered by desktop tests')
-    await page.goto('/')
+    await page.goto('/garden-room')
     await waitForScene(page)
     await expect(page.locator('main canvas')).toBeVisible()
     await page.getByRole('tab', { name: /Flooring/ }).click()
@@ -293,7 +293,7 @@ test('every request stays on our own origin (no CDNs, trackers or third-party fo
     const u = new URL(r.url())
     if (!['data:', 'blob:'].includes(u.protocol) && u.origin !== new URL(baseURL!).origin) external.push(r.url())
   })
-  await page.goto('/')
+  await page.goto('/garden-room')
   await waitForScene(page)
   await chooseDesktop(page, 'sofa', 'curve-velvet-taupe')
   await expectRendered(page, { sofa: 'curve-velvet-taupe' })
@@ -310,7 +310,7 @@ test('security headers are served', async ({ request }) => {
 })
 
 test('group headers are keyboard operable', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/garden-room')
   await waitForScene(page)
   await groupHeader(page, 'flooring').focus()
   await page.keyboard.press('Enter')

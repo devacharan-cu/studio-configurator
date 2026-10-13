@@ -2,10 +2,10 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { makeReference, validateBrief, type BriefInput } from '../../src/domain/brief'
-import { GROUPS, TEMPLATE } from '../../src/domain/catalog'
-import { isValidOption } from '../../src/domain/configuration'
-import { GROUP_IDS } from '../../src/domain/types'
+import { makeReference, validateBrief, type BriefInput } from '../../../src/garden-room/domain/brief'
+import { GROUPS, TEMPLATE } from '../../../src/garden-room/domain/catalog'
+import { isValidOption } from '../../../src/garden-room/domain/configuration'
+import { GROUP_IDS } from '../../../src/garden-room/domain/types'
 
 const ok: BriefInput = { name: 'Ada Lovelace', email: 'ada@example.com', phone: '', preferredContact: 'email', notes: '' }
 
@@ -43,7 +43,7 @@ describe('validateBrief', () => {
 })
 
 describe('catalogue integrity', () => {
-  const publicDir = fileURLToPath(new URL('../../public', import.meta.url))
+  const publicDir = fileURLToPath(new URL('../../../public', import.meta.url))
 
   it('has unique, URL-safe option ids per group and valid defaults', () => {
     for (const g of GROUP_IDS) {
@@ -90,7 +90,7 @@ describe('storage', () => {
   })
 
   it('drops corrupted or tampered saved designs on load', async () => {
-    const { loadSavedDesigns } = await import('../../src/lib/storage')
+    const { loadSavedDesigns } = await import('../../../src/garden-room/lib/storage')
     localStorage.setItem(
       'fernhall.roomset.v1.saved',
       JSON.stringify([
@@ -105,7 +105,7 @@ describe('storage', () => {
   })
 
   it('survives invalid JSON and unavailable storage', async () => {
-    const { loadSavedDesigns, storeSavedDesigns } = await import('../../src/lib/storage')
+    const { loadSavedDesigns, storeSavedDesigns } = await import('../../../src/garden-room/lib/storage')
     localStorage.setItem('fernhall.roomset.v1.saved', '{not json')
     expect(loadSavedDesigns()).toEqual([])
     ;(globalThis as { localStorage?: unknown }).localStorage = {
