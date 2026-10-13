@@ -1,0 +1,88 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Instrument Serif', 'Times New Roman', serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-paper: #f6f3ee;
+  --color-linen: #ede8e0;
+  --color-sand: #ddd5c9;
+  --color-line: #d9d1c4;
+  --color-mute: #7b736a;
+  --color-ink: #23201c;
+  --color-ink-soft: #4a443d;
+  --color-bronze: #8c5a3c;
+  --color-bronze-deep: #6f4329;
+  --color-sage: #6f7d68;
+  --color-danger: #a23b2a;
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  ::selection {
+    background: #e2cdb8;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-bronze);
+    outline-offset: 2px;
+  }
+}
+
+@utility eyebrow {
+  @apply text-[10.5px] font-medium tracking-[0.18em] text-mute uppercase;
+}
+@utility btn {
+  @apply inline-flex h-10 items-center justify-center gap-2 rounded-full px-4 text-[13px] font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-45;
+}
+@utility btn-primary {
+  @apply btn bg-ink text-paper hover:bg-ink-soft;
+}
+@utility btn-secondary {
+  @apply btn border border-line bg-paper/80 text-ink hover:border-ink-soft hover:bg-paper;
+}
+@utility btn-ghost {
+  @apply btn text-ink-soft hover:bg-linen;
+}
+@utility field {
+  @apply w-full rounded-xl border border-line bg-white/70 px-3.5 py-2.5 text-[14px] text-ink transition-colors placeholder:text-mute/70 focus:border-ink-soft focus:outline-none aria-[invalid=true]:border-danger;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
