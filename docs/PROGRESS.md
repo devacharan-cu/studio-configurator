@@ -9,5 +9,7 @@ Branch: `feature/building-engine` (remote: github.com/devacharan-cu/studio-confi
 
 | M2 | Editor shell: 2D plan editor + derived 3D view on one store; undo/redo; autosave; inspector | Done | `2046f23` | 50/50 unit; E2E 27 passed + 1 skip (8 editor, 19 Garden Room); typecheck, lint, build, audit 0, Semgrep 0, Gitleaks 0 |
 
+| M3 | Direct 3D editing (walls, openings, furniture) + 3D placement tools | Done | `a248826` | 50/50 unit; E2E 31 passed + 1 skip; typecheck, lint, audit 0, Semgrep 0, Gitleaks 0 |
+
 ## Next
-M3 — direct 3D structural editing (drag walls/openings/furniture in 3D through the same commands) and furniture placement in 3D.
+M4 — first-person walkthrough with collision, room awareness, mode transitions; touch controls.

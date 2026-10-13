@@ -65,3 +65,21 @@ Each milestone records: what changed, commands run with real results, risks, rem
 - Two E2E test bugs of mine (click target on a door symbol; offset direction assumption) — fixed in the tests; the engine behaved correctly in both.
 
 **Risks / remaining:** 3D direct manipulation not yet implemented (M3). Plan editor is mouse/pen-first; touch pinch-zoom on the plan is not implemented. A leftover Vite dev server from Phase 1 was found on port 5173 and stopped before testing.
+
+## M3 — Direct 3D structural editing (commit `a248826`)
+
+**Changes:** `src/editor/scene/Manipulator.tsx` (ray → horizontal plane through the grab point → plan delta → `moveWall` / `moveOpening` / `moveItem`, the same commands as 2D; controls suspended during edit drags), pick rules and 3D tools in `Scene3D.tsx`, `tests/e2e/editor/camera.ts` (reproduces the initial camera to target real geometry), `tests/e2e/editor/scene3d.spec.ts`.
+
+**Commands & results:**
+| Command | Result |
+|---|---|
+| `npx tsc -b` / `npx oxlint` | pass / 0 warnings |
+| `npx vitest run` | 50/50 |
+| `npx playwright test` | 31 passed, 1 skipped (intentional) |
+| `npm audit` | 0 vulnerabilities |
+| Semgrep on `src`, `tests` | 0 findings |
+| Gitleaks on `src` | no leaks |
+
+**Found:** tall furniture (2.2 m wardrobe) stands above cut-away walls and can hide items in neighbouring rooms from the default camera — recorded as a limitation; test retargeted to an unobstructed item. A session interruption occurred mid-milestone; on resume the working tree was checked (only the two M3 files modified) and checks re-run.
+
+**Risks / remaining:** no transform gizmo for rotation in 3D (rotation via inspector, Q key, or the 2D handle). No snapping guides in 3D beyond 5 cm steps.
