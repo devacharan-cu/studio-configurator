@@ -4,6 +4,7 @@ import { canRedo, canUndo, commit, initHistory, redo, undo, type History } from 
 import { parseProject, serializeProject } from '../engine/model/project'
 import type { Id, Project } from '../engine/model/types'
 import { compactHome } from '../engine/templates'
+import type { ViewPreset } from './scene/framing'
 
 export type Tool = 'select' | 'room' | 'door' | 'window' | 'passage' | 'place'
 export type SelectionKind = 'wall' | 'room' | 'opening' | 'item' | 'node'
@@ -12,8 +13,21 @@ export interface Selection {
   id: Id
 }
 export type ViewMode = 'split' | 'plan' | '3d'
-export type CameraMode = 'orbit' | 'walk'
+/** orbit: editing/inspection · walk: grounded first person with collision · fly: free camera for inspection */
+export type CameraMode = 'orbit' | 'walk' | 'fly'
 export type SaveState = 'saved' | 'unsaved' | 'error'
+
+/** Per-viewer navigation preferences (kept in this browser). */
+export interface NavSettings {
+  /** Mouse-look multiplier, 0.3–3. */
+  look: number
+  /** Walking speed in m/s (Shift multiplies). */
+  walkSpeed: number
+  /** Free-camera speed in m/s (Shift multiplies, wheel adjusts). */
+  flySpeed: number
+  invertY: boolean
+}
+export const DEFAULT_NAV: NavSettings = { look: 1, walkSpeed: 1.4, flySpeed: 3, invertY: false }
 
 export interface Notice {
   id: number
@@ -39,6 +53,13 @@ interface EditorState {
   saveState: SaveState
   /** Walkthrough HUD state: the room the visitor is in, and teleport requests. */
   walk: { room: string | null; goto: { x: number; y: number; nonce: number } | null; returnView: ViewMode }
+  /** Free-camera viewpoint requests (position + look direction), consumed by the fly controller. */
+  flyTo: { pos: [number, number, number]; yaw: number; pitch: number; nonce: number } | null
+  nav: NavSettings
+  /** Orbit-camera requests from the UI (presets, frame selection), consumed by the orbit rig. */
+  viewCmd: { kind: 'preset'; preset: ViewPreset; nonce: number } | { kind: 'selection'; nonce: number } | null
+  /** Whether the 3D canvas currently holds pointer lock (walk/fly). */
+  pointerLocked: boolean
 
   /** Apply a command result: commit it (one undo step) or report why it was rejected. */
   run: (result: CommandResult) => boolean
@@ -55,7 +76,13 @@ interface EditorState {
   setCamera: (c: CameraMode) => void
   setCutaway: (on: boolean) => void
   enterWalk: () => void
+  enterFly: () => void
+  /** Leave walk/fly and return to the view the user came from. */
   exitWalk: () => void
+  flyToView: (pos: [number, number, number], yaw: number, pitch: number) => void
+  setNav: (patch: Partial<NavSettings>) => void
+  setPointerLocked: (on: boolean) => void
+  requestView: (cmd: { kind: 'preset'; preset: ViewPreset } | { kind: 'selection' }) => void
   setWalkRoom: (name: string | null) => void
   walkTo: (x: number, y: number) => void
   notify: (tone: Notice['tone'], text: string) => void
@@ -63,6 +90,24 @@ interface EditorState {
 }
 
 const STORAGE_KEY = 'roomset.editor.v1.project'
+const NAV_KEY = 'roomset.editor.v1.nav'
+
+const clamp = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d)
+/** Read navigation preferences defensively: storage is untrusted and may be unavailable. */
+function loadNav(): NavSettings {
+  try {
+    const raw = JSON.parse(localStorage.getItem(NAV_KEY) ?? 'null') as Partial<NavSettings> | null
+    if (!raw || typeof raw !== 'object') return DEFAULT_NAV
+    return {
+      look: clamp(raw.look, 0.3, 3, DEFAULT_NAV.look),
+      walkSpeed: clamp(raw.walkSpeed, 0.6, 3, DEFAULT_NAV.walkSpeed),
+      flySpeed: clamp(raw.flySpeed, 0.5, 20, DEFAULT_NAV.flySpeed),
+      invertY: raw.invertY === true,
+    }
+  } catch {
+    return DEFAULT_NAV
+  }
+}
 let noticeSeq = 0
 
 function initialProject(): { project: Project; message?: string } {
@@ -100,6 +145,10 @@ export const useEditor = create<EditorState>()((set, get) => {
     notices: [],
     saveState: 'saved',
     walk: { room: null, goto: null, returnView: 'split' },
+    flyTo: null,
+    nav: loadNav(),
+    pointerLocked: false,
+    viewCmd: null,
 
     run: (result) => {
       if (!result.ok) {
@@ -152,17 +201,39 @@ export const useEditor = create<EditorState>()((set, get) => {
     setCamera: (camera) => set({ camera }),
     setCutaway: (cutaway) => set({ cutaway }),
     enterWalk: () => {
-      const { view } = get()
-      set({ camera: 'walk', view: '3d', selection: null, preview: null, walk: { room: null, goto: null, returnView: view } })
+      const { view, camera, walk } = get()
+      // switching fly → walk keeps the original editor view to return to
+      const returnView = camera === 'orbit' ? view : walk.returnView
+      set({ camera: 'walk', view: '3d', preview: null, tool: 'select', placeAsset: null, walk: { room: null, goto: null, returnView } })
     },
-    exitWalk: () => set((s) => ({ camera: 'orbit', view: s.walk.returnView })),
+    enterFly: () => {
+      const { view, camera, walk } = get()
+      const returnView = camera === 'orbit' ? view : walk.returnView
+      set({ camera: 'fly', view: '3d', preview: null, tool: 'select', placeAsset: null, flyTo: null, walk: { room: null, goto: null, returnView } })
+    },
+    exitWalk: () => set((s) => ({ camera: 'orbit', view: s.walk.returnView, pointerLocked: false })),
+    flyToView: (pos, yaw, pitch) => set((s) => ({ flyTo: { pos, yaw, pitch, nonce: (s.flyTo?.nonce ?? 0) + 1 } })),
+    setNav: (patch) => {
+      const nav = { ...get().nav, ...patch }
+      set({ nav })
+      try {
+        localStorage.setItem(NAV_KEY, JSON.stringify(nav))
+      } catch {
+        /* per-viewer convenience only */
+      }
+    },
+    requestView: (cmd) => set((s) => ({ viewCmd: { ...cmd, nonce: (s.viewCmd?.nonce ?? 0) + 1 } })),
+    setPointerLocked: (pointerLocked) => {
+      if (get().pointerLocked !== pointerLocked) set({ pointerLocked })
+    },
     setWalkRoom: (room) => {
       if (get().walk.room !== room) set((s) => ({ walk: { ...s.walk, room } }))
     },
     walkTo: (x, y) => set((s) => ({ walk: { ...s.walk, goto: { x, y, nonce: (s.walk.goto?.nonce ?? 0) + 1 } } })),
     notify: (tone, text) => {
       const id = ++noticeSeq
-      set((s) => ({ notices: [...s.notices.slice(-2), { id, tone, text }] }))
+      // The same message twice (e.g. repeated clicks) replaces the earlier copy instead of stacking.
+      set((s) => ({ notices: [...s.notices.filter((n) => n.text !== text).slice(-2), { id, tone, text }] }))
       setTimeout(() => get().dismiss(id), tone === 'error' ? 6000 : 3500)
     },
     dismiss: (id) => set((s) => ({ notices: s.notices.filter((n) => n.id !== id) })),

@@ -122,7 +122,60 @@ intersected with a horizontal plane through the grab point and the plan-space de
 `moveWall` / `moveOpening` / `moveItem` — the same commands, previews and single-step commits as 2D.
 Camera controls are suspended only for that drag; a press on anything unselected orbits as normal.
 
-## Walkthrough
+## Camera modes and navigation (Phase 2)
+
+There are three camera modes, each a separate controller, rather than one controller doing every job
+(`store.camera`):
+
+| Mode | Controller | Purpose | Constraints |
+|---|---|---|---|
+| `orbit` | `OrbitRig` (drei `CameraControls`) | editing and inspection: orbit, pan, dolly to cursor, presets, frame selection | above the ground (polar ≤ 88.9°) |
+| `walk` | `Walkthrough` | human-scale experience | engine colliders; eye height 1.6 m; pitch ±85°; no roll |
+| `fly` | `FreeFly` | unconstrained architectural inspection | no collisions; never below 0.12 m; pitch ±89°; no roll |
+
+- **Input** (`useNavInput`, shared by walk and fly):
+  - Clicking the canvas, or the "Click to look around" prompt, takes pointer lock with raw input
+    (`unadjustedMovement`), falling back to plain pointer lock, then to drag-to-look.
+  - Esc releases the lock (the browser's own behaviour). A second Esc returns to the editor; the first
+    Esc's keydown is ignored for 250 ms after unlocking.
+  - Keys go into a shared `walkInput` set that the controllers read every frame. The touch joystick,
+    look pad and up/down buttons write to the same object.
+- **Movement** is velocity-based. The approach toward the target speed is `1 − e^(−rate·dt)`, which is
+  frame-rate independent (unit-tested). Walking accelerates at 9/s and decelerates at 12/s; Shift
+  multiplies speed by 2.2.
+  - Walk motion goes through `moveWithCollisions`, sub-stepped at half the body radius, so even a 5 m
+    single-frame step cannot pass a wall (unit-tested).
+  - After each step the velocity is set to the displacement actually achieved. Walking along a wall
+    keeps its tangential component; walking straight into it stops.
+- **Look** is yaw and pitch on an Euler YXZ with z = 0, so there is never roll. Yaw is unrestricted.
+- **Field of view** is 45° in orbit and 62° in walk/fly (about 90° horizontally on 16:10), eased on
+  every mode change.
+- **Arrival** (`bestHeading`, `walkablePoint`):
+  - Entering the walkthrough, or using "go to room", places you at a free point inside the room
+    (rooms often have a table in the middle).
+  - You face the most open *indoor* direction, probed through the engine colliders and stopped at the
+    building edge, so you never arrive facing a wall, a door leaf or out of the front door.
+- **Transitions**:
+  - Entering walk glides from the orbit camera in 0.8 s.
+  - Fly starts exactly where the orbit camera was.
+  - Leaving either mode glides back to the orbit pose the user left (`savedOrbit`, module state that
+    survives the rig unmounting).
+  - Walk ↔ fly switch directly.
+  - Selection and the project are untouched by navigation (E2E-tested).
+- **Immersive layout**: in walk and fly, the top bar, tool rail, library, inspector and plan are not
+  rendered, so the canvas fills the window. The HUD carries:
+  - exit, the mode switch, "Go to room" (walk) or "Viewpoints" (fly);
+  - navigation settings (look sensitivity, walk/fly speed, invert Y), persisted per viewer, with
+    validated reads;
+  - a full-screen toggle and a collapsible controls legend.
+- **Orbit framing** (`framing.ts`, pure):
+  - `presetPose` computes the exact distance at which all eight corners of the building box are on
+    screen for the viewport's aspect (overview, top, four elevations). Unit-tested at five aspects and
+    six presets, and reused by the E2E picking helper.
+  - An untouched overview refits when the viewport changes shape (split ↔ 3D).
+  - F frames the selection and H frames the home.
+
+## Walkthrough collision
 
 `buildColliders` turns walls into capsules along their centrelines, interrupted at doors and passages
 (windows stay closed), plus furniture footprints taller than 25 cm. The visitor is a 0.25 m circle;

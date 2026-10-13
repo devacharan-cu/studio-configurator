@@ -187,7 +187,12 @@ describe('structural edits', () => {
     expect(err(addOpening(p, { wall: top.id, kind: 'door', offset: 2, width: 4.5 }))).toBe('opening-fit')
     p = ok(addOpening(p, { wall: top.id, kind: 'door', offset: 1, width: 0.9 }))
     const door = Object.values(p.openings)[0]
-    expect(err(addOpening(p, { wall: top.id, kind: 'window', offset: 1.5, width: 1 }))).toBe('opening-overlap')
+    // a new opening requested on top of the door goes to the nearest free span instead of overlapping
+    const beside = ok(addOpening(p, { wall: top.id, kind: 'window', offset: 1.5, width: 1 }))
+    const win = Object.values(beside.openings).find((o) => o.kind === 'window')!
+    expect(win.offset - win.width / 2).toBeGreaterThanOrEqual(1 + 0.45 + 0.05 - 1e-9)
+    // ...while moving one opening onto another is still rejected
+    expect(err(moveOpening(beside, { opening: win.id, offset: 1.2 }))).toBe('opening-overlap')
     expect(err(moveOpening(p, { opening: door.id, offset: 3.9 }))).toBe('opening-fit')
     expect(ok(moveOpening(p, { opening: door.id, offset: 3 })).openings[door.id].offset).toBe(3)
   })

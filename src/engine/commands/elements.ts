@@ -27,13 +27,17 @@ export function addOpening(
   const lo = u0 + LIMITS.openingClearance + width / 2
   const hi = u1 - LIMITS.openingClearance - width / 2
   if (lo > hi) return fail('opening-fit', `This wall is too short for a ${width.toFixed(2)} m ${args.kind}`, w.id)
+  // Existing openings occupy parts of the wall: place the new one in the nearest free span that fits.
+  const offset = nearestFreeCentre(p, w.id, clampNum(args.offset, lo, hi), width, lo, hi)
+  if (offset === null) return fail('opening-overlap', `No free space on this wall for a ${width.toFixed(2)} m ${args.kind} — move or resize the existing openings`, w.id)
   const d = new Draft(p)
   const id = newId('o')
+  if (Math.abs(offset - clampNum(args.offset, lo, hi)) > 0.01) d.warnings.push(`Placed the ${args.kind} beside the existing opening`)
   d.setOpening({
     id,
     wall: w.id,
     kind: args.kind,
-    offset: clampNum(args.offset, lo, hi),
+    offset,
     width,
     height,
     sill: args.sill ?? def.sill,
@@ -42,6 +46,33 @@ export function addOpening(
   })
   d.created.push(id)
   return finish(d, `Add ${args.kind}`)
+}
+
+/**
+ * The centre closest to `want` (within [lo, hi]) at which an opening of `width` doesn't overlap the
+ * wall's existing openings (keeping the clearance between them), or null if the wall is full.
+ */
+export function nearestFreeCentre(p: Project, wall: Id, want: number, width: number, lo: number, hi: number, ignore?: Id): number | null {
+  const gap = LIMITS.openingClearance
+  // blocked centre ranges: an existing opening at c with width w blocks centres within (w + width)/2 + gap
+  const blocked = Object.values(p.openings)
+    .filter((o) => o.wall === wall && o.id !== ignore)
+    .map((o) => [o.offset - o.width / 2 - gap - width / 2, o.offset + o.width / 2 + gap + width / 2] as const)
+    .sort((a, b) => a[0] - b[0])
+  const free: [number, number][] = []
+  let cursor = lo
+  for (const [b0, b1] of blocked) {
+    if (b0 > cursor) free.push([cursor, Math.min(b0, hi)])
+    cursor = Math.max(cursor, b1)
+  }
+  if (cursor <= hi) free.push([cursor, hi])
+  let best: number | null = null
+  for (const [f0, f1] of free) {
+    if (f1 < f0) continue
+    const c = clampNum(want, f0, f1)
+    if (best === null || Math.abs(c - want) < Math.abs(best - want)) best = c
+  }
+  return best
 }
 
 export function moveOpening(p: Project, args: { opening: Id; offset: number; wall?: Id }): CommandResult {

@@ -1,6 +1,6 @@
 import { getAsset } from './assets/catalog'
 import { itemCorners, roomAt } from './commands/structure'
-import { interiorPoint } from './geometry/polygon'
+import { interiorPoint, strictlyInside } from './geometry/polygon'
 import { add, closestOnSegment, norm, scale, sub, type V2 } from './geometry/vec'
 import { openingsOnWall, roomPolygon, wallFrame } from './model/query'
 import type { Id, Project } from './model/types'
@@ -103,7 +103,30 @@ export function moveWithCollisions(from: V2, delta: V2, r: number, c: Colliders)
 export function spawnPoint(p: Project, level: Id): V2 | null {
   const rooms = Object.values(p.rooms).filter((r) => r.level === level)
   const room = rooms.find((r) => r.type === 'hall') ?? rooms[0]
-  return room ? interiorPoint(roomPolygon(p, room)) : null
+  return room ? walkablePoint(roomPolygon(p, room), buildColliders(p, level)) : null
+}
+
+/**
+ * A point inside the polygon where a walker fits, as close as possible to its natural centre
+ * (rooms often have a table or bed in the middle). Falls back to the centre if the room is full.
+ */
+export function walkablePoint(poly: V2[], c: Colliders, r = 0.25): V2 {
+  const centre = interiorPoint(poly)
+  if (!blocked(centre, r, c)) return centre
+  const xs = poly.map((q) => q.x)
+  const ys = poly.map((q) => q.y)
+  let best: V2 | null = null
+  let bestD = Infinity
+  for (let x = Math.min(...xs) + r; x <= Math.max(...xs) - r; x += 0.1)
+    for (let y = Math.min(...ys) + r; y <= Math.max(...ys) - r; y += 0.1) {
+      const q = { x, y }
+      const d = Math.hypot(x - centre.x, y - centre.y)
+      if (d < bestD && strictlyInside(q, poly, r) && !blocked(q, r, c)) {
+        best = q
+        bestD = d
+      }
+    }
+  return best ?? centre
 }
 
 export function currentRoom(p: Project, level: Id, q: V2) {
@@ -113,7 +136,42 @@ export function currentRoom(p: Project, level: Id, q: V2) {
 
 /** A walkable point inside each room on a level, for "go to room" navigation. */
 export function roomCentres(p: Project, level: Id): { id: Id; name: string; at: V2 }[] {
+  const c = buildColliders(p, level)
   return Object.values(p.rooms)
     .filter((r) => r.level === level)
-    .map((r) => ({ id: r.id, name: r.name, at: interiorPoint(roomPolygon(p, r)) }))
+    .map((r) => ({ id: r.id, name: r.name, at: walkablePoint(roomPolygon(p, r), c) }))
+}
+
+/** True if a circle of radius r at q overlaps any collider (used for line-of-travel probes). */
+export function blocked(q: V2, r: number, c: Colliders): boolean {
+  const out = resolveCollisions(q, r, c, 1)
+  return Math.hypot(out.x - q.x, out.y - q.y) > 1e-3
+}
+
+/**
+ * How far a walker can travel from `from` along unit `dir` before hitting something (capped at `max`).
+ * With `inside`, the view also ends where it leaves the building (e.g. out through the front door).
+ */
+export function clearDistance(from: V2, dir: V2, r: number, c: Colliders, max = 12, step = 0.1, inside?: (q: V2) => boolean): number {
+  for (let d = step; d <= max; d += step) {
+    const q = { x: from.x + dir.x * d, y: from.y + dir.y * d }
+    if (blocked(q, r, c) || (inside && !inside(q))) return d - step
+  }
+  return max
+}
+
+/**
+ * The most open direction from a point, as a walkthrough yaw (camera forward = plan (-sin yaw, -cos yaw)).
+ * Used when entering a room so the visitor looks into it, not at the nearest wall or door leaf.
+ */
+export function bestHeading(from: V2, r: number, c: Colliders, inside?: (q: V2) => boolean, samples = 24): number {
+  let best = { yaw: 0, score: -1 }
+  for (let i = 0; i < samples; i++) {
+    const yaw = (i / samples) * Math.PI * 2
+    const dir = { x: -Math.sin(yaw), y: -Math.cos(yaw) }
+    // prefer long, unobstructed views; a slight bias towards right angles reads as "looking down the room"
+    const score = clearDistance(from, dir, r, c, 12, 0.1, inside) * (i % (samples / 4) === 0 ? 1.04 : 1)
+    if (score > best.score) best = { yaw, score }
+  }
+  return best.yaw
 }

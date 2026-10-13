@@ -9,7 +9,8 @@ import { PlanView } from './plan/PlanView'
 import { currentProject, useEditor, type Tool, type ViewMode } from './store'
 import { Icon, type IconName } from './ui/icons'
 import { Inspector } from './ui/Inspector'
-import { WalkHud } from './ui/WalkHud'
+import { NavHud } from './ui/NavHud'
+import { ViewBar } from './ui/ViewBar'
 
 const Scene3D = lazy(() => import('./scene/Scene3D').then((m) => ({ default: m.Scene3D })))
 
@@ -117,16 +118,27 @@ function TopBar({ onFrame }: { onFrame: () => void }) {
 
       <div className="ml-auto flex items-center gap-2">
         {camera === 'orbit' && (
-          <button
-            type="button"
-            className="btn-primary h-8 px-3 text-[12px]"
-            onClick={() => useEditor.getState().enterWalk()}
-            disabled={Object.keys(history.present.rooms).length === 0}
-            title="Walk through the building in first person"
-          >
-            <Icon name="walk" size={15} /> <span className="hidden sm:inline">Walk through</span>
-            <span className="sr-only sm:hidden">Walk through</span>
-          </button>
+          <>
+            <button
+              type="button"
+              className="btn-primary h-8 px-3 text-[12px]"
+              onClick={() => useEditor.getState().enterWalk()}
+              disabled={Object.keys(history.present.rooms).length === 0}
+              title="Walk through the home in first person, full screen"
+            >
+              <Icon name="walk" size={15} /> <span className="hidden sm:inline">Walk through</span>
+              <span className="sr-only sm:hidden">Walk through</span>
+            </button>
+            <button
+              type="button"
+              className="btn hidden h-8 border border-line px-2.5 text-[12px] text-ink-soft hover:bg-linen sm:inline-flex"
+              onClick={() => useEditor.getState().enterFly()}
+              title="Free camera: fly anywhere to inspect the architecture"
+            >
+              <Icon name="fly" size={15} /> <span className="hidden md:inline">Free camera</span>
+              <span className="sr-only md:hidden">Free camera</span>
+            </button>
+          </>
         )}
         {view !== 'plan' && camera === 'orbit' && (
           <button
@@ -186,7 +198,7 @@ function ToolRail({ library, setLibrary }: { library: boolean; setLibrary: (b: b
         aria-pressed={library || tool === 'place'}
         onClick={() => setLibrary(!library)}
         className={`flex w-12 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-medium ${library || tool === 'place' ? 'bg-ink text-paper' : 'text-ink-soft hover:bg-linen'}`}
-        title="Furniture & fixtures library (F)"
+        title="Furniture & fixtures library (L)"
       >
         <Icon name="sofa" size={19} />
         Furnish
@@ -287,7 +299,7 @@ function useShortcuts(setLibrary: (b: boolean) => void) {
       const t = e.target as HTMLElement
       if (t.closest('input, textarea, select, [contenteditable]')) return
       const st = useEditor.getState()
-      if (st.camera === 'walk') return
+      if (st.camera !== 'orbit') return
       const mod = e.ctrlKey || e.metaKey
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault()
@@ -326,7 +338,10 @@ function useShortcuts(setLibrary: (b: boolean) => void) {
         st.setTool(tool.id)
         setLibrary(false)
       }
-      if (e.key.toLowerCase() === 'f') setLibrary(true)
+      if (e.key.toLowerCase() === 'l') setLibrary(true)
+      // camera: F frames the selection (or the whole home), H returns to the overview
+      if (e.key.toLowerCase() === 'f' && st.view !== 'plan') st.requestView({ kind: 'selection' })
+      if (e.key.toLowerCase() === 'h' && st.view !== 'plan') st.requestView({ kind: 'preset', preset: 'overview' })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -339,22 +354,16 @@ export default function EditorApp() {
   const [library, setLibrary] = useState(false)
   const [frameKey, setFrameKey] = useState(0)
   useShortcuts(setLibrary)
-  // Leaving the walkthrough glides the orbit camera back to the overview.
-  useEffect(
-    () =>
-      useEditor.subscribe((s, prev) => {
-        if (prev.camera === 'walk' && s.camera === 'orbit') setFrameKey((k) => k + 1)
-      }),
-    [],
-  )
   useEffect(() => {
     document.title = 'Roomset — building editor'
   }, [])
-  const showPlan = view !== '3d'
-  const show3d = view !== 'plan'
+  // Walk and fly are immersive: the scene takes the whole window and editing chrome is hidden.
+  const immersive = camera !== 'orbit'
+  const showPlan = view !== '3d' && !immersive
+  const show3d = view !== 'plan' || immersive
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-paper text-ink">
-      <TopBar onFrame={() => setFrameKey((k) => k + 1)} />
+      {!immersive && <TopBar onFrame={() => setFrameKey((k) => k + 1)} />}
       <div className="flex min-h-0 flex-1">
         {/* Structural editing tools need a pointer and room; phones get viewing + walkthrough. */}
         {camera === 'orbit' && (
@@ -362,7 +371,7 @@ export default function EditorApp() {
             <ToolRail library={library} setLibrary={setLibrary} />
           </div>
         )}
-        {library && <Library onClose={() => setLibrary(false)} />}
+        {library && !immersive && <Library onClose={() => setLibrary(false)} />}
         <main className="flex min-w-0 flex-1">
           {showPlan && (
             <section className={`relative min-w-0 ${show3d ? 'w-1/2 border-r border-line/80' : 'flex-1'}`} aria-label="2D plan">
@@ -374,11 +383,11 @@ export default function EditorApp() {
               <Suspense fallback={<div className="grid h-full place-items-center text-[12px] text-mute">Loading 3D…</div>}>
                 <Scene3D frameKey={frameKey} />
               </Suspense>
-              {camera === 'walk' && <WalkHud />}
+              {immersive ? <NavHud /> : <ViewBar />}
             </section>
           )}
         </main>
-        <div className={`w-[300px] shrink-0 ${camera === 'walk' ? 'hidden' : 'hidden lg:block'}`}>
+        <div className={`w-[300px] shrink-0 ${immersive ? 'hidden' : 'hidden lg:block'}`}>
           <Inspector />
         </div>
       </div>

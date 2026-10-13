@@ -1,5 +1,23 @@
 # Security review
 
+## Phase 2 — M1 navigation (2026-10-13)
+
+| Check | Result |
+|---|---|
+| `npm audit` | 0 vulnerabilities (no new dependencies) |
+| Semgrep 1.180 (`p/javascript p/typescript p/react p/secrets p/owasp-top-ten`) over `src`, `tests` | 0 findings, 114 rules, 73 files |
+| Gitleaks 8.30.1 over `src` and the full git history | no leaks |
+
+**New surfaces:**
+- **Navigation settings** in `localStorage` (`roomset.editor.v1.nav`) are untrusted on read. Each value
+  is type-checked and clamped to its range, and anything else falls back to the defaults. Reads and
+  writes are wrapped, so blocked storage is harmless.
+- **Pointer Lock and Fullscreen APIs** are requested only from user gestures (a click on the canvas or
+  a HUD button), and every promise rejection is handled. Leaving walk/fly releases both.
+- **Dev handles:** a new dev-only `__three` state getter sits next to `__editor` and `__gl`, behind
+  `import.meta.env.DEV`. Its absence from `dist/` is checked by the release grep (AUDIT_LOG).
+
+
 ## Building editor milestone (2026-10-13)
 
 | Check | Result |

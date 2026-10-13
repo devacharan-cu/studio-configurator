@@ -22,7 +22,7 @@ npm run dev            # editor at http://localhost:5173/   ·   Phase 1 at /gar
 | Command | What it does |
 |---|---|
 | `npm run build` / `npm run preview` | Production build; preview on :4173 with the production security headers |
-| `npm test` | 53 unit tests: engine geometry, commands, invariants, history, persistence, collision, performance budgets, plus Garden Room |
+| `npm test` | 61 unit tests: engine geometry, commands, invariants, history, persistence, collision, navigation and framing, performance budgets, plus Garden Room |
 | `npm run test:e2e` | Playwright on the production build: desktop, tablet and phone (first run: `npx playwright install chromium`) |
 | `npm run typecheck` / `npm run lint` | `tsc -b` / oxlint |
 
@@ -54,10 +54,19 @@ exported and imported as JSON.
   furniture is pushed back into its room when a wall moves into it.
 - **Undo and redo** for every edit, including each drag as one step. Autosave, plus JSON export and import,
   with strict validation of anything loaded.
-- **First-person walkthrough.**
-  - WASD and mouse look (pointer lock), or a touch joystick on phones.
-  - Collision with walls and furniture; doorways can be walked through, windows can't.
-  - Current-room readout and go-to-room navigation, with smooth transitions in and out.
+- **Three camera modes.**
+  - **Orbit / inspect:** whole-home framing that fits any viewport; overview, top and four elevation
+    presets; frame selection (F) and frame home (H).
+  - **Walk through (full screen):**
+    - click to capture the mouse, then free look (full turn, ±85° up and down, no roll);
+    - WASD with smooth acceleration, Shift to run, arrow keys to turn;
+    - collision with walls and furniture through real doorways (windows stay closed);
+    - "Go to room" places you facing into the room;
+    - adjustable look sensitivity and speed;
+    - Esc releases the mouse, a second Esc returns to the editor where you left it.
+  - **Free camera (full screen):** fly through anything, with E/Q (or Space/C) for up and down, the
+    wheel for speed and preset viewpoints (aerial, street, garden, inside each room).
+  - Phones and tablets get a touch joystick, look pad and up/down buttons.
 - **Template.** A compact six-room home (about 82 m² gross) built entirely through the public
   commands. A blank project is also available.
 
@@ -90,6 +99,7 @@ the licence, attribution and source URL.
 - **Rooms are drawn as rectangles,** then reshaped by moving corners. There's no free polygon tool or
   curved walls. Walls can only be deleted together with their room.
 - **No rotation gizmo in 3D.** Rotate with the 2D handle, the inspector or the Q key.
+- **No roof is modelled.** From above, the free camera looks into the rooms (ceilings are single-sided).
 - **Tall furniture blocks the cut-away view.** It rises above the lowered walls and can hide
   neighbouring rooms from the overhead camera.
 - **Doors are always open,** and window views show a plain sky.

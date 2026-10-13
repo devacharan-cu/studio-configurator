@@ -122,3 +122,145 @@ Each milestone records: what changed, commands run with real results, risks, rem
 **Found in review:** phone layout unusable in split view; colliding plan labels on tablet; portrait 3D framing cropped; one E2E test assumed a fixed canvas size while the library panel was open (fixed in the test).
 
 **Remaining issues:** single-level UI; rectangle-only room drawing; no 3D rotation gizmo; tall furniture occludes the cut-away overview; procedural fixtures are placeholder quality; only Chromium tested; not tested on physical mobile devices.
+
+---
+
+# Phase 2 — immersive home experience
+
+## P2-M0 — Repository verification, visual diagnosis, tool audit, plan (2026-10-13)
+
+**Repository:**
+- `git fetch origin`: `origin/feature/building-engine` = `262b47e` = local HEAD, working tree clean.
+- `main` (`9cb62cc`) is local only.
+- Identity is `devacharan-cu <devacharan@gmail.com>` (repo config).
+- New branch `feature/immersive-home-experience` was created from `262b47e`.
+
+**Tools:**
+- Available: Playwright 1.64 (project-local); Claude in Chrome (available, not needed because
+  Playwright headed runs covered real-window validation); WebFetch/WebSearch; Semgrep 1.180 and
+  Gitleaks 8.30.1 (isolated in `~/.cache/sc-tools`); npm audit.
+- Not installed: Context7, Firecrawl (paid key), plugins. Official docs were fetched directly instead.
+- `gltf-transform` is not installed. It will be run from an isolated scratch install when assets need
+  optimising (M3), as in Phase 1, because its CLI pulls advisories into the dev tree.
+- Nothing global was changed.
+
+**Visual diagnosis.** Reproduced on the production build (headless Chromium, real GPU), with
+screenshots inspected, and ranked by user impact:
+
+1. **Walkthrough arrival was disorienting.**
+   - The hall spawn faced an 85°-open door leaf 30 cm away.
+   - "Go to room" kept the previous heading, so you arrived staring at a blank wall.
+   - The 45° lens (the orbit lens) felt like looking through a tube at human scale.
+2. **Walking happened inside the editor frame.** The top bar, rail and inspector stayed on screen;
+   there was no settings panel, no free camera and no way to inspect ceilings or exteriors freely.
+3. **The overview was framed from a fixed formula, not the viewport.**
+   - The building filled about a third of the 3D pane, centred in a large beige field.
+   - A tighter sphere fit (first attempt in this milestone) then cropped portrait panes. Fixed with an
+     exact box fit (below).
+4. **"Two openings overlap on the same wall" stacked as duplicate red notices.**
+   - The opening tool used the click position verbatim, so clicking on or near an existing window
+     produced an invalid project, which was correctly rejected.
+   - Each click added another identical notice.
+   - The templates themselves are valid (unit-tested); the cause was the tool, not the data.
+5. **Visual quality (M2 scope).**
+   - The exterior is a flat beige disc and pale sky; windows look onto nothing.
+   - Ceilings and walls are flat and evenly lit.
+   - The floor reads dark in the overview; window frames are black boxes with no visible glass from
+     outside.
+   - Code-modelled kitchen, bath and wardrobe are plain boxes.
+6. **Library (M3 scope).** 24 entries (14 models plus 10 code-modelled). No thumbnails: the cards
+   show a grey footprint rectangle.
+
+**Plan (dependency order):**
+- **M1 navigation:** the camera system the visual work will be judged from.
+- **M2 rendering:** environment, lighting, materials, architecture details, measured.
+- **M3 assets and materials:** catalogue, thumbnails, browser UX, duplicate.
+- **M4 templates:** three or more distinct complete homes, plus room/furnishing presets.
+- **M5 polish and regression.**
+
+## P2-M1 — Game-like camera and navigation
+
+**What changed:**
+- **Three camera controllers** (D12): `Walkthrough` (rewritten), `FreeFly` (new) and `OrbitRig`
+  (presets, frame selection, restore, exact framing), with shared input in `useNavInput`.
+- **Walk:**
+  - velocity-based movement with frame-rate-independent acceleration; Shift runs;
+  - pointer lock with raw input; ±85° pitch with no roll;
+  - field of view 62°;
+  - arrival at a free point facing the most open indoor view.
+- **Fly:** E/Q/Space/C vertical, wheel for speed, viewpoints (aerial, street, garden, a high corner of
+  each room), never below ground.
+- **Immersive layout:** editing chrome is hidden. The HUD has the mode switch, settings
+  (sensitivity/speed/invert, persisted per viewer), full screen, a controls legend and a capture
+  prompt.
+- **Orbit:**
+  - Views menu (overview, top, four elevations), frame selection (F), frame home (H);
+  - an exact box-corner fit for any aspect;
+  - an untouched overview refits on viewport change;
+  - returning from walk/fly glides back to the exact orbit pose.
+- **Engine:**
+  - `addOpening` places a new opening in the nearest free span, or refuses with a reason (D13);
+  - `bestHeading`, `clearDistance` and `walkablePoint`;
+  - "go to room" targets are now free points.
+- **Store:**
+  - camera mode `fly`; `nav` settings; `pointerLocked`; `viewCmd`; `flyTo`;
+  - identical notices no longer stack;
+  - selection is kept through walk/fly.
+- **Library shortcut:** moved from F to L, because F now frames the selection.
+
+**Defects found in this milestone and fixed at the cause:**
+
+| # | Defect | Cause | Fix |
+|---|---|---|---|
+| 1 | Duplicate overlap warnings | Tool ignored existing openings; notices not deduplicated | D13 |
+| 2 | Walk arrival faced a door leaf or wall | Fixed spawn yaw toward the plan centre; teleports kept the old yaw | `bestHeading` over engine colliders |
+| 3 | First fix faced *out* of the front door | The probe counted outdoors | Probe stops at the building edge |
+| 4 | Room teleports could land on a table | `interiorPoint` ignores furniture | `walkablePoint` |
+| 5 | Portrait split pane cropped the overview (my sphere fit) | A sphere underestimates the diagonal silhouette | Exact box-corner fit, unit-tested at 5 aspects × 6 presets |
+| 6 | Returning from fly reframed instead of restoring | The reframe effect ran on remount in the same commit | Reframe only when level/project actually change |
+| 7 | Leaving fly overwrote the remembered overview | The canvas resized while the rig was still mounted, and on remount it saw the stale full-screen size | Act only on genuine resizes after mount, in orbit mode |
+
+**Browser validation (real interaction, production build):**
+- **Headless Chromium on the real GPU:** entered the walkthrough, acquired pointer lock (verified
+  `document.pointerLockElement === CANVAS`), and looked left/right/up/down (yaw and pitch read back
+  from the HUD).
+- **Movement:** walked forward/back, strafed, ran, walked through the hall→bathroom and
+  hall→bedroom doorways, used "Go to room" for all 6 rooms, and released the mouse.
+- **Free camera:** switched to fly, rose 3 m in 1 s, used the aerial, inside-kitchen and street
+  viewpoints, and exited back to the restored split view.
+- **Orbit:** used the front preset and frame-home.
+- **Headed run** (visible window, same steps plus frame timing): no console errors.
+
+**Commands & results:**
+
+| Command | Result |
+|---|---|
+| `npx tsc -b` | pass |
+| `npx oxlint` | 0 warnings |
+| `npx vitest run` | 61/61 (8 new: opening placement ×2, reachability of every room by walking, no tunnelling at a 5 m step, arrival heading, key mapping, frame-rate-independent easing, framing at 5 aspects × 6 presets) |
+| `npm run build` | pass; dev handles (`__editor`, `__gl`, `__three`) absent from `dist/` |
+| `npx playwright test` (desktop, tablet, Pixel 7) | **41 passed, 2 skipped** (device-specific), 0 failed, 6.1 min |
+| New E2E `navigation.spec.ts` (6) | full-screen walk + pointer lock + full turn + pitch clamps ±85° + Esc twice; WASD/strafe/Shift/speed setting; **walking tour through every doorway visiting all six rooms**, plus running into a wall for 3 s; free camera up/down/along-view/ground clamp/wheel speed/viewpoints and exact orbit restore (pixel diff < 2%); mode switches keep selection and project, presets and F/H framing; opening placement beside and full-wall refusal shown once |
+| `npm audit` | 0 vulnerabilities |
+| Semgrep (5 rulesets) on `src`, `tests` | 0 findings, 114 rules, 73 files |
+| Gitleaks: `src` and full history | no leaks |
+
+**Performance (headed Chromium, AMD Radeon 610M, ANGLE/D3D11, high-refresh panel):**
+- walking with mouse look: median 8.3 ms, p95 12.5 ms, max 12.6 ms;
+- flying up and forward with look: median 4.2 ms, p95 8.4 ms, max 16.8 ms;
+- 0 frames over 100 ms.
+
+**Screenshots:** `docs/screenshots/editor/p2m1-*.png`
+- split overview, 3D framed, front preset;
+- walk arrival, walk in the living room, walk looking up;
+- fly inside the kitchen, fly aerial, fly street view.
+
+**Known limitations after M1:**
+- Visuals are unchanged in this milestone: the flat exterior, plain ceilings and no glass from
+  outside are M2.
+- There is no roof, so the aerial view looks into the rooms.
+- Pointer-lock Esc can only be exercised by a human (automation uses `exitPointerLock`).
+- A touch fly mode exists (joystick plus up/down) but was only exercised by unit-level input mapping,
+  not on a device.
+- Stairs and levels are not navigable, because the editor is single-storey. The controllers read the
+  level elevation, so another level is a data change, not a rewrite.

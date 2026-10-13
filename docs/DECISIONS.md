@@ -78,3 +78,65 @@ the full editor.
 The Phase 1 configurator is a separate module at `/garden-room` with its own tests. It is not built on
 the new engine (it is a single curated scene); it remains as a working client-presentation demo and
 regression baseline until the presentation mode is rebuilt on the building model.
+
+---
+
+# Phase 2 — immersive home experience
+
+## D11 — Keep three.js `WebGLRenderer` + R3F; no engine switch
+
+**Goal first.**
+- Convincing interiors at human scale on integrated graphics: physically based materials, image-based
+  lighting, soft grounded shadows, believable exteriors through windows, game-like navigation.
+- Direct editing of the same model must keep working.
+
+**Evaluated (official docs, fetched 2026-10-13):**
+- **three.js `WebGPURenderer`.** The manual still calls it *experimental*: "depending on your scene
+  you may hit missing features or get better performance from `WebGLRenderer`".
+  - It does not support `ShaderMaterial`, `onBeforeCompile` or `EffectComposer`; code must be ported
+    to TSL node materials.
+  - Gain for us: SSGI and a new post stack. We already measured post-processing as the cause of
+    300–900 ms stalls on this GPU (D7).
+- **PlayCanvas.** Documented runtime lightmapper, clustered lighting, area lights, IBL, Basis texture
+  compression, splats.
+  - The lightmapper is the one feature we would want. Lightmaps can also be fed to three.js (`aoMap`
+    and `lightMap` on a second UV set), so this is not exclusive to PlayCanvas.
+  - Migration would replace R3F, Drei `CameraControls`, the picking and manipulation layer and every
+    scene component, for no measured gain yet.
+- **Babylon.js 8.** Announced IBL shadows and area lights.
+  - Same migration cost.
+  - three.js already has `RectAreaLight` and environment lighting.
+
+**Decision:** stay on three.js r186 `WebGLRenderer`. Spend the effort on assets, materials, lighting
+set-up and baked data, which transfer to any engine. No proof of concept was built, because nothing
+showed a compelling, measurable advantage worth the migration.
+
+**Revisit if:** we need hundreds of dynamic lights (clustered lighting), or `WebGPURenderer` leaves
+experimental status and benchmarks faster on integrated GPUs.
+
+## D12 — Three camera controllers, not one
+
+Orbit, walk and fly have different constraints: a target versus none, collisions versus none,
+grounded versus free vertical motion, editing picks versus pointer lock. One controller with mode
+flags couples all of them.
+
+Instead, each mode is a small component that owns the camera while mounted; the editor mounts exactly
+one. Shared concerns (input, pointer lock, settings) live in `useNavInput` and the store.
+
+Drei's `PointerLockControls` was not used:
+- it has no pitch-limit API beyond polar angles;
+- it has no movement model;
+- our controllers need yaw and pitch as state for transitions, viewpoints, HUD and tests.
+
+## D13 — New openings go to the nearest free span
+
+Clicking an opening tool on an existing door or window used to fail validation with "Two openings
+overlap on the same wall". That was the duplicated warning in the reported screenshot: every click
+added another identical notice.
+
+Now:
+- **`addOpening`** looks for the free spans the existing openings leave on the wall (keeping the 5 cm
+  clearance) and places the new opening at the nearest one, with an info note.
+- **A full wall** is refused with "No free space on this wall …".
+- **Validation is unchanged:** moving an opening onto another is still rejected.
+- **Notices with identical text** replace one another instead of stacking.

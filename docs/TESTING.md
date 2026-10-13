@@ -1,5 +1,29 @@
 # Testing record
 
+## Phase 2 — M1 navigation (2026-10-13)
+
+| Command | Result |
+|---|---|
+| `npx tsc -b` / `npx oxlint` | pass / 0 warnings |
+| `npx vitest run` | 61/61 (new `tests/unit/engine/navigation.test.ts`, 8 tests) |
+| `npx playwright test` | 41 passed, 2 skipped (device-specific), 0 failed |
+
+**How the walkthrough is tested with real input.**
+- Headless Chromium grants pointer lock and reports `movementX/Y`. The tests click "Click to look
+  around", assert `document.pointerLockElement` is the canvas, and turn with relative mouse moves.
+- Yaw, pitch and position are read back from the HUD's `data-walk-*` / `data-fly-*` attributes.
+- `walkTo()` steers with the mouse and walks with W like a person, and is used for a tour through
+  every doorway.
+- Only the browser's own Esc-releases-lock cannot be synthesised; tests call
+  `document.exitPointerLock()`, which is what that Esc does.
+- A headed (visible-window) run repeated the session with frame timing (AUDIT_LOG P2-M1).
+
+**Not verified:** Firefox/Safari pointer lock; real touch devices for the fly mode; a real Esc key
+press. A human can confirm these in seconds.
+
+---
+
+
 ## Building editor milestone (2026-10-13)
 
 Environment: Windows 11, Node 24.20, Playwright 1.64 Chromium on a real GPU (AMD Radeon 610M integrated,

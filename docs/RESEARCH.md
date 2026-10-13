@@ -53,3 +53,28 @@ Conducted 2026-10-13. "Observed" = seen first-hand in a browser or fetched page 
 | github.com/gkjohnson/three-bvh-csg | Fast BVH CSG, MIT, "experimental, in progress"; needs two-manifold brushes; no interactive benchmarks; worker support on roadmap. | Rejected for openings (D2). |
 | Help pages: Space Designer 3D, Chief Architect Room Planner, pCon.planner (via search results) | Rooms auto-detected when walls close; drag a wall to resize a room; drag corners; doors/windows snap into the nearest wall; split-wall tools. | Matches our interaction model: draw room, drag wall/corner, click a wall to add doors/windows. Floorplanner's own help pages did not appear in search — not verified. |
 | cedreo.com/room-planner (fetched) | Product claims: 3D updates as you draw in 2D; live wall lengths and area table. Time-saving claims are marketing, unquantified. | Live dimensions and room areas in the plan; 2D/3D side by side. |
+
+---
+
+# Research — Phase 2: immersive navigation and real-time graphics (2026-10-13)
+
+The tools in this environment are WebFetch and WebSearch, headless and headed Playwright Chromium on
+the real GPU, and the Claude in Chrome extension. Context7 and Firecrawl are not installed (see
+AUDIT_LOG, Phase 2 tool audit), so documentation was fetched from the official sites directly.
+
+| Source | Verified finding | Influence |
+|---|---|---|
+| threejs.org/docs/pages/PointerLockControls.html | `lock(unadjustedMovement)` disables OS mouse acceleration; pitch is limited by `min/maxPolarAngle`; `pointerSpeed`; `moveForward` and `moveRight` move parallel to the xz-plane; lock/unlock events. | We call `requestPointerLock({ unadjustedMovement: true })` with a fallback, mirror the lock/unlock UI pattern, and write our own controller (D12). |
+| threejs.org/manual/pages/webgpurenderer | "Experimental". Falls back to WebGL 2. No `ShaderMaterial`, `onBeforeCompile` or `EffectComposer`; node-based post-processing with SSGI. May be slower than `WebGLRenderer` for some scenes. `WebGLRenderer` remains maintained and recommended for pure WebGL 2. | Stay on `WebGLRenderer` (D11). |
+| developer.playcanvas.com/user-manual/graphics | Runtime lightmapper; clustered lighting for hundreds of lights; area lights; IBL with HDR; SSAO in post; Basis texture compression; Gaussian splats; ACES and Neutral tone mapping. No dedicated GI system. | Lightmaps are the transferable idea; evaluated for M2 within three.js. |
+| Babylon.js 8.0 announcement (blogs.windows.com, 2025-03-27, via search) | IBL shadows (Adobe contribution), area lights, Node Render Graph (alpha), WGSL core shaders. | Not compelling enough to justify a migration (D11). |
+
+**What was measured rather than read:**
+- Pointer lock in headless Chromium: the lock is granted and `movementX/Y` are reported for Playwright
+  mouse moves, so look direction can be tested automatically.
+- A synthetic Esc does **not** release the lock. Tests call `document.exitPointerLock()`, which is
+  what a real Esc does.
+- Frame times in a headed window: see TESTING.
+
+Rendering research for M2 (materials, IBL, baked lighting, tone mapping, asset sources) is recorded
+with that milestone.

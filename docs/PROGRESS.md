@@ -1,5 +1,23 @@
 # Progress
 
+## Phase 2 — immersive home experience
+
+Branch: `feature/immersive-home-experience`, created from `feature/building-engine` @ `262b47e` (verified
+equal to `origin/feature/building-engine` after `git fetch`). Pushes go to the same-named remote branch;
+`main` is never pushed.
+
+| # | Milestone | Status | Commit | Evidence |
+|---|---|---|---|---|
+| P2-M1 | Game-like navigation: full-screen walk + free camera + orbit presets; fixed overlapping-opening warnings | Done | _see AUDIT_LOG_ | 61/61 unit; E2E (see AUDIT_LOG); headed + headless browser validation; audit 0, Semgrep 0, Gitleaks 0 |
+| P2-M2 | Real-time rendering quality (materials, lighting, environment, framing) | Planned | | |
+| P2-M3 | Asset and material library | Planned | | |
+| P2-M4 | Complete-home and room templates | Planned | | |
+| P2-M5 | Product polish and final regression audit | Planned | | |
+
+---
+
+## Phase 1 / building-engine milestones
+
 Branch: `feature/building-engine` (remote: github.com/devacharan-cu/studio-configurator). `main` holds the Phase 1 baseline locally and is not pushed without approval.
 
 | # | Milestone | Status | Commit | Evidence |
