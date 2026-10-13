@@ -264,3 +264,6 @@ screenshots inspected, and ranked by user impact:
   not on a device.
 - Stairs and levels are not navigable, because the editor is single-storey. The controllers read the
   level elevation, so another level is a data change, not a rewrite.
+
+**Commit:** `3e08119`, pushed to `origin/feature/immersive-home-experience` (new branch, normal push, no
+force), authored by `devacharan-cu <devacharan@gmail.com>`, no co-author trailer.
