@@ -3,6 +3,9 @@ import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { getAsset } from '../../engine/assets/catalog'
+import { addItem, addOpening } from '../../engine/commands/elements'
+import { wallFrame } from '../../engine/model/query'
+import { snapLength } from '../plan/snap'
 import type { Project } from '../../engine/model/types'
 import { planBounds } from './bounds'
 import { useEditor, useProject, type Selection } from '../store'
@@ -104,18 +107,48 @@ function SceneContent({ frameKey }: { frameKey: number }) {
     return () => clearTimeout(t)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const getThree = useThree((s) => s.get)
   const handlers: PickHandlers = useMemo(
     () => ({
       onPick: (s: Selection, e: ThreeEvent<PointerEvent>) => {
         const st = useEditor.getState()
-        if (st.camera === 'walk' || st.tool !== 'select' || e.button !== 0) return
+        if (st.camera === 'walk' || e.button !== 0) return
+        const p = st.history.present
+        // Tools work in 3D too: openings on the clicked wall, furniture at the clicked floor point.
+        if ((st.tool === 'door' || st.tool === 'window' || st.tool === 'passage') && s.kind === 'wall') {
+          e.stopPropagation()
+          const { a, dir } = wallFrame(p, p.walls[s.id])
+          const offset = snapLength((e.point.x - a.x) * dir.x + (e.point.z - a.y) * dir.y)
+          if (st.run(addOpening(p, { wall: s.id, kind: st.tool, offset }))) {
+            const created = Object.keys(useEditor.getState().history.present.openings).find((id) => !p.openings[id])
+            if (created) st.select({ kind: 'opening', id: created })
+          }
+          return
+        }
+        if (st.tool === 'place' && st.placeAsset && s.kind === 'room') {
+          e.stopPropagation()
+          if (st.run(addItem(p, { asset: st.placeAsset, level: st.level, x: snapLength(e.point.x), y: snapLength(e.point.z) }))) {
+            const created = Object.keys(useEditor.getState().history.present.items).find((id) => !p.items[id])
+            if (created) st.select({ kind: 'item', id: created })
+            st.setTool('select')
+          }
+          return
+        }
+        if (st.tool !== 'select') return
         e.stopPropagation()
+        const already = st.selection?.kind === s.kind && st.selection.id === s.id
         st.select(s)
-        drag.current = { selection: s, startPoint: e.point.clone(), pointerId: e.pointerId, base: st.history.present, moved: false }
+        // First click selects (the camera stays free to orbit); dragging an already-selected
+        // wall, opening or item edits it. This prevents accidental structural edits while looking around.
+        if (already && s.kind !== 'room') {
+          const controls = getThree().controls as unknown as { enabled: boolean } | null
+          if (controls) controls.enabled = false
+          drag.current = { selection: s, startPoint: e.point.clone(), pointerId: e.pointerId, base: p, moved: false }
+        }
       },
       onHover: (s: Selection | null) => useEditor.getState().setHover(s),
     }),
-    [],
+    [getThree],
   )
 
   const walking = camera === 'walk'
