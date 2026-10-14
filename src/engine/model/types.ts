@@ -118,6 +118,8 @@ export interface Project {
   rooms: Record<Id, Room>
   openings: Record<Id, Opening>
   items: Record<Id, Item>
+  /** Exterior wall finish (facade) for the whole building; default lime render. */
+  facade?: string
   meta: { createdAt: string; updatedAt: string; template?: string }
 }
 

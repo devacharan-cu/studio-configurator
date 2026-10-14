@@ -1,23 +1,28 @@
 import { useTexture } from '@react-three/drei'
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { EXTERIOR_FINISH, FLOOR_FINISHES, WALL_FINISHES, type FinishDef } from '../../engine/assets/finishes'
+import { finishById, getExteriorFinish, type FinishDef } from '../../engine/assets/finishes'
+import type { Project } from '../../engine/model/types'
 
 /**
  * Materials are shared by finish id across every mesh (one material per finish, not per wall), so a
  * whole house uses a handful of materials and textures regardless of how many walls it has.
+ * Textures are fetched only for finishes actually in use (the library has ~30), on first use.
  * Geometry carries UVs in metres; textures repeat at 1 / tileSize.
  */
 
 const paths = (t: string) => [`/assets/textures/${t}/color.webp`, `/assets/textures/${t}/normal.webp`, `/assets/textures/${t}/rough.webp`]
-const ALL = [...FLOOR_FINISHES, ...WALL_FINISHES, EXTERIOR_FINISH]
-const TEXTURES = [...new Set(ALL.map((f) => f.texture).concat(['rough_linen', 'curly_teddy_natural', 'oak_veneer_01']))]
-
-export function preloadFinishTextures() {
-  for (const t of TEXTURES) useTexture.preload(paths(t))
-}
-
 const cache = new Map<string, THREE.MeshStandardMaterial>()
+
+/** Start fetching the textures of the finishes a project uses (floors, walls, facade) in parallel. */
+export function preloadProjectFinishes(p: Project) {
+  const ids = new Set<string>([getExteriorFinish(p.facade).id])
+  for (const r of Object.values(p.rooms)) ids.add(r.floorFinish).add(r.wallFinish)
+  for (const id of ids) {
+    const f = finishById(id)
+    if (f) useTexture.preload(paths(f.texture))
+  }
+}
 
 function build(f: FinishDef, maps: THREE.Texture[], extra?: Partial<THREE.MeshStandardMaterialParameters>) {
   const [color, normal, rough] = maps.map((t, i) => {
@@ -53,41 +58,6 @@ export function useFinishMaterial(f: FinishDef, key: string = f.id): THREE.MeshS
     cache.set(key, m)
     return m
   }, [f, maps, key])
-}
-
-/** All wall finishes at once (walls need one per side), keyed by finish id. */
-export function useWallMaterials() {
-  const textures = useTexture([...WALL_FINISHES, EXTERIOR_FINISH].flatMap((f) => paths(f.texture)))
-  return useMemo(() => {
-    const out = new Map<string, THREE.MeshStandardMaterial>()
-    ;[...WALL_FINISHES, EXTERIOR_FINISH].forEach((f, i) => {
-      const key = `wall:${f.id}`
-      let m = cache.get(key)
-      if (!m) {
-        m = build(f, textures.slice(i * 3, i * 3 + 3), { side: THREE.FrontSide })
-        cache.set(key, m)
-      }
-      out.set(f.id, m)
-    })
-    return out
-  }, [textures])
-}
-
-export function useFloorMaterials() {
-  const textures = useTexture(FLOOR_FINISHES.flatMap((f) => paths(f.texture)))
-  return useMemo(() => {
-    const out = new Map<string, THREE.MeshStandardMaterial>()
-    FLOOR_FINISHES.forEach((f, i) => {
-      const key = `floor:${f.id}`
-      let m = cache.get(key)
-      if (!m) {
-        m = build(f, textures.slice(i * 3, i * 3 + 3))
-        cache.set(key, m)
-      }
-      out.set(f.id, m)
-    })
-    return out
-  }, [textures])
 }
 
 /** Plain shared materials for trims, frames, glass and generic fixtures. */

@@ -1,7 +1,7 @@
 import { ASSETS, getAsset } from '../../engine/assets/catalog'
-import { FLOOR_FINISHES, WALL_FINISHES } from '../../engine/assets/finishes'
+import { EXTERIOR_FINISHES, FLOOR_FINISHES, getExteriorFinish, WALL_FINISHES } from '../../engine/assets/finishes'
 import { deleteItem, deleteOpening, duplicateItem, moveItem, moveOpening, replaceItem, rotateItem, setItemVariant, updateOpening } from '../../engine/commands/elements'
-import { deleteRoom, moveWall, setRoomSize, updateRoom, updateWall } from '../../engine/commands/structure'
+import { deleteRoom, moveWall, setFacade, setRoomSize, updateRoom, updateWall } from '../../engine/commands/structure'
 import { wallSides } from '../../engine/geometry/walls'
 import { fmtArea, fmtLen, roomMetrics } from '../../engine/metrics'
 import { roomPolygon, wallFrame } from '../../engine/model/query'
@@ -278,6 +278,10 @@ function ProjectSummary({ p }: { p: Project }) {
           ))}
         </ul>
         {rooms.length > 0 && <Row label="Total net area" value={fmtArea(total)} testId="total-area" />}
+      </Section>
+      <Section title="Facade">
+        <Swatches label="Facade finish" options={EXTERIOR_FINISHES} value={getExteriorFinish(p.facade).id} onPick={(id) => useEditor.getState().run(setFacade(p, { finish: id }))} />
+        <p className="text-[11.5px] text-mute">{getExteriorFinish(p.facade).name}</p>
       </Section>
       <Section title="Building">
         <Row label="Walls" value={String(Object.keys(p.walls).length)} />

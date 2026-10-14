@@ -11,15 +11,16 @@ The plan and backlog are in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md).
 | P3-M0 | Baseline, audit, research, product roadmap | Done, pushed | `ad8db3a` | tsc/lint/unit 70/70/build/audit re-run on `0a89fc6`; E2E 44 passed + 2 skips on identical code (P2-M2 run) |
 | P3-M1 | Template + asset architecture, gallery, asset browser, duplicate, item finishes, outdoor rooms | Done, pushed | `086dcf9` | 107/107 unit; E2E 47 passed + 2 device skips; audit 0, Semgrep 0, Gitleaks 0 |
 | P3-M2 | Asset pipeline; library 26 → 82 entries (72 distinct third-party models); wall/ceiling/tabletop placement; credits | Done, pushed | `6aff0eb` | 169/169 unit; E2E **49 passed, 2 skipped** (device-specific), 0 failed, 7.8 min; 82/82 assets load in the real renderer |
-| P3-M3 | Materials + interior realism | Planned | | |
+| P3-M3 | Finish library (15 floors, 9 walls, 6 facades); parametric kitchens/bathrooms/beds/wardrobes (22 parametric entries); planar mirror at Quality; footprint terrace; anti-tiling lawn; startup 3.2 s → 1.75 s longest freeze | Done | (this commit) | 183/183 unit; E2E **50 passed, 2 skipped** (device-specific), 0 failed, 7.8 min |
 | P3-M4 | First batch of house templates | Planned | | |
 | P3-M5 | Multi-storey + templates to 10–15 | Planned | | |
 | P3-M6 | Variants, finish packages, presentation, still export | Planned | | |
 | P3-M7 | End-to-end review | Planned | | |
 
-**Next concrete task:** P3-M3. Expand the finish library (tiles, stone, wood, concrete, paint), rebuild
-the parametric kitchen, bathroom, bed and wardrobe pieces to a much higher standard, make the site
-follow the footprint, break up the lawn's visible repetition, and measure the cost of every change.
+**Next concrete task:** P3-M4. Write the first batch of single-storey house and apartment specs
+(apartments, an L-shaped bungalow, a courtyard house, a compact urban home, a contemporary family
+home), each passing the template invariant suite. Then capture their thumbnails through the gallery
+and walk each one.
 
 ---
 

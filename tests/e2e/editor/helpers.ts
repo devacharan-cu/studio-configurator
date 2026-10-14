@@ -4,6 +4,7 @@ import { expect, type Page } from '@playwright/test'
 export interface SavedProject {
   id: string
   name: string
+  facade?: string
   nodes: Record<string, { id: string; x: number; y: number }>
   walls: Record<string, { id: string; a: string; b: string; thickness: number }>
   rooms: Record<string, { id: string; name: string; boundary: string[]; floorFinish: string }>

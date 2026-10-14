@@ -1,6 +1,6 @@
 {
- "generated": "from src/engine/assets/catalog.ts + library.ts (see scripts and docs/ASSETS.md)",
- "count": 82,
+ "generated": "from src/engine/assets/catalog.ts + library.ts",
+ "count": 94,
  "assets": [
   {
    "id": "sofa-arlo",
@@ -9,7 +9,7 @@
    "kind": "procedural",
    "file": null,
    "license": "project",
-   "attribution": "Modelled in code for this project",
+   "attribution": "Parametric model by this project (code)",
    "attributionRequired": false,
    "source": null,
    "footprintMetres": {
@@ -18,6 +18,13 @@
     "h": 0.78
    },
    "mount": "floor",
+   "finishVariants": [
+    "oatmeal",
+    "sage",
+    "charcoal",
+    "terracotta",
+    "ink"
+   ],
    "triangles": null,
    "textureMegapixels": null,
    "fileKB": null,
@@ -39,6 +46,7 @@
     "h": 0.79
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 3848,
    "textureMegapixels": 2.1,
    "fileKB": 415,
@@ -60,6 +68,7 @@
     "h": 1.17
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 5800,
    "textureMegapixels": 3.1,
    "fileKB": 285,
@@ -81,6 +90,7 @@
     "h": 1.02
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 7029,
    "textureMegapixels": 6.3,
    "fileKB": 307,
@@ -102,6 +112,7 @@
     "h": 0.97
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 17011,
    "textureMegapixels": 3.1,
    "fileKB": 258,
@@ -123,6 +134,7 @@
     "h": 0.39
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 3832,
    "textureMegapixels": 3.1,
    "fileKB": 164,
@@ -144,6 +156,7 @@
     "h": 0.49
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 3732,
    "textureMegapixels": 3.1,
    "fileKB": 187,
@@ -165,6 +178,7 @@
     "h": 0.76
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 7800,
    "textureMegapixels": 3.1,
    "fileKB": 173,
@@ -186,6 +200,7 @@
     "h": 0.55
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 2542,
    "textureMegapixels": 3.1,
    "fileKB": 184,
@@ -207,6 +222,7 @@
     "h": 0.53
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 2564,
    "textureMegapixels": 3.1,
    "fileKB": 135,
@@ -214,12 +230,12 @@
   },
   {
    "id": "desk",
-   "name": "Writing desk",
+   "name": "Desk with drawer pedestal",
    "category": "tables",
    "kind": "procedural",
    "file": null,
    "license": "project",
-   "attribution": "Modelled in code for this project",
+   "attribution": "Parametric model by this project (code)",
    "attributionRequired": false,
    "source": null,
    "footprintMetres": {
@@ -228,10 +244,67 @@
     "h": 0.75
    },
    "mount": "floor",
+   "finishVariants": [
+    "oak",
+    "walnut",
+    "white"
+   ],
    "triangles": null,
    "textureMegapixels": null,
    "fileKB": null,
    "thumbnail": "/assets/catalog/desk.webp"
+  },
+  {
+   "id": "table-dining-rect",
+   "name": "Dining table, 1.8 m (seats 6)",
+   "category": "tables",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 1.8,
+    "d": 0.9,
+    "h": 0.76
+   },
+   "mount": "floor",
+   "finishVariants": [
+    "oak",
+    "walnut",
+    "white"
+   ],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/table-dining-rect.webp"
+  },
+  {
+   "id": "table-dining-rect-small",
+   "name": "Dining table, 1.4 m (seats 4)",
+   "category": "tables",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 1.4,
+    "d": 0.8,
+    "h": 0.76
+   },
+   "mount": "floor",
+   "finishVariants": [
+    "oak",
+    "walnut",
+    "white"
+   ],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/table-dining-rect-small.webp"
   },
   {
    "id": "cabinet-media",
@@ -249,6 +322,7 @@
     "h": 0.68
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 19869,
    "textureMegapixels": 3.1,
    "fileKB": 415,
@@ -270,6 +344,7 @@
     "h": 1.56
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 2854,
    "textureMegapixels": 3.1,
    "fileKB": 165,
@@ -291,6 +366,7 @@
     "h": 1.88
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 13543,
    "textureMegapixels": 3.1,
    "fileKB": 241,
@@ -298,54 +374,149 @@
   },
   {
    "id": "wardrobe",
-   "name": "Two-door wardrobe",
+   "name": "Wardrobe, two doors",
    "category": "storage",
    "kind": "procedural",
    "file": null,
    "license": "project",
-   "attribution": "Modelled in code for this project",
+   "attribution": "Parametric model by this project (code)",
    "attributionRequired": false,
    "source": null,
    "footprintMetres": {
-    "w": 1.8,
-    "d": 0.62,
+    "w": 1.2,
+    "d": 0.6,
     "h": 2.2
    },
    "mount": "floor",
+   "finishVariants": [
+    "white",
+    "oak",
+    "walnut",
+    "sage",
+    "greige"
+   ],
    "triangles": null,
    "textureMegapixels": null,
    "fileKB": null,
    "thumbnail": "/assets/catalog/wardrobe.webp"
   },
   {
+   "id": "wardrobe-3door",
+   "name": "Wardrobe, three doors",
+   "category": "storage",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 1.8,
+    "d": 0.6,
+    "h": 2.2
+   },
+   "mount": "floor",
+   "finishVariants": [
+    "white",
+    "oak",
+    "walnut",
+    "sage",
+    "greige"
+   ],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/wardrobe-3door.webp"
+  },
+  {
    "id": "bed-double",
-   "name": "Upholstered double bed",
+   "name": "Upholstered double bed (1.5 m)",
    "category": "beds",
    "kind": "procedural",
    "file": null,
    "license": "project",
-   "attribution": "Modelled in code for this project",
+   "attribution": "Parametric model by this project (code)",
    "attributionRequired": false,
    "source": null,
    "footprintMetres": {
-    "w": 1.7,
-    "d": 2.15,
-    "h": 1.05
+    "w": 1.6,
+    "d": 2.13,
+    "h": 1.03
    },
    "mount": "floor",
+   "finishVariants": [
+    "ivory",
+    "stone",
+    "moss",
+    "clay"
+   ],
    "triangles": null,
    "textureMegapixels": null,
    "fileKB": null,
    "thumbnail": "/assets/catalog/bed-double.webp"
   },
   {
+   "id": "bed-king",
+   "name": "Upholstered king bed (1.8 m)",
+   "category": "beds",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 1.9,
+    "d": 2.13,
+    "h": 1.03
+   },
+   "mount": "floor",
+   "finishVariants": [
+    "ivory",
+    "stone",
+    "moss",
+    "clay"
+   ],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/bed-king.webp"
+  },
+  {
+   "id": "bed-single",
+   "name": "Upholstered single bed (0.9 m)",
+   "category": "beds",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 1,
+    "d": 2.13,
+    "h": 1.03
+   },
+   "mount": "floor",
+   "finishVariants": [
+    "ivory",
+    "stone",
+    "moss",
+    "clay"
+   ],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/bed-single.webp"
+  },
+  {
    "id": "kitchen-run",
-   "name": "Kitchen run, 3 m",
+   "name": "Kitchen run, 3 m (sink, hob, oven)",
    "category": "kitchen",
    "kind": "procedural",
    "file": null,
    "license": "project",
-   "attribution": "Modelled in code for this project",
+   "attribution": "Parametric model by this project (code)",
    "attributionRequired": false,
    "source": null,
    "footprintMetres": {
@@ -353,20 +524,155 @@
     "d": 0.62,
     "h": 0.95
    },
-   "mount": "floor",
+   "mount": "wall",
+   "finishVariants": [
+    "sage-quartz",
+    "white-oak",
+    "walnut-terrazzo",
+    "charcoal-concrete",
+    "oak-quartz"
+   ],
    "triangles": null,
    "textureMegapixels": null,
    "fileKB": null,
    "thumbnail": "/assets/catalog/kitchen-run.webp"
   },
   {
-   "id": "kitchen-island",
-   "name": "Kitchen island",
+   "id": "kitchen-run-short",
+   "name": "Kitchen run, 2.4 m",
    "category": "kitchen",
    "kind": "procedural",
    "file": null,
    "license": "project",
-   "attribution": "Modelled in code for this project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 2.4,
+    "d": 0.62,
+    "h": 0.95
+   },
+   "mount": "wall",
+   "finishVariants": [
+    "sage-quartz",
+    "white-oak",
+    "walnut-terrazzo",
+    "charcoal-concrete",
+    "oak-quartz"
+   ],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/kitchen-run-short.webp"
+  },
+  {
+   "id": "kitchen-wall-units",
+   "name": "Wall cabinets, 2.4 m",
+   "category": "kitchen",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 2.4,
+    "d": 0.35,
+    "h": 0.72
+   },
+   "mount": "wall",
+   "finishVariants": [
+    "sage-quartz",
+    "white-oak",
+    "walnut-terrazzo",
+    "charcoal-concrete",
+    "oak-quartz"
+   ],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/kitchen-wall-units.webp"
+  },
+  {
+   "id": "kitchen-tall-fridge",
+   "name": "Tall fridge-freezer housing",
+   "category": "kitchen",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 0.6,
+    "d": 0.62,
+    "h": 2.2
+   },
+   "mount": "wall",
+   "finishVariants": [
+    "sage-quartz",
+    "white-oak",
+    "walnut-terrazzo",
+    "charcoal-concrete",
+    "oak-quartz"
+   ],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/kitchen-tall-fridge.webp"
+  },
+  {
+   "id": "fridge-steel",
+   "name": "Stainless fridge-freezer",
+   "category": "kitchen",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 0.7,
+    "d": 0.7,
+    "h": 1.85
+   },
+   "mount": "floor",
+   "finishVariants": [],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/fridge-steel.webp"
+  },
+  {
+   "id": "cooker-hood",
+   "name": "Chimney cooker hood",
+   "category": "kitchen",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 0.6,
+    "d": 0.5,
+    "h": 1.1
+   },
+   "mount": "wall",
+   "finishVariants": [],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/cooker-hood.webp"
+  },
+  {
+   "id": "kitchen-island",
+   "name": "Kitchen island with seating overhang",
+   "category": "kitchen",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
    "attributionRequired": false,
    "source": null,
    "footprintMetres": {
@@ -375,6 +681,13 @@
     "h": 0.92
    },
    "mount": "floor",
+   "finishVariants": [
+    "sage-quartz",
+    "white-oak",
+    "walnut-terrazzo",
+    "charcoal-concrete",
+    "oak-quartz"
+   ],
    "triangles": null,
    "textureMegapixels": null,
    "fileKB": null,
@@ -387,7 +700,7 @@
    "kind": "procedural",
    "file": null,
    "license": "project",
-   "attribution": "Modelled in code for this project",
+   "attribution": "Parametric model by this project (code)",
    "attributionRequired": false,
    "source": null,
    "footprintMetres": {
@@ -396,19 +709,42 @@
     "h": 0.6
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": null,
    "textureMegapixels": null,
    "fileKB": null,
    "thumbnail": "/assets/catalog/bath.webp"
   },
   {
-   "id": "vanity",
-   "name": "Vanity with basin",
+   "id": "shower",
+   "name": "Walk-in shower, 1.2 × 0.9 m",
    "category": "bathroom",
    "kind": "procedural",
    "file": null,
    "license": "project",
-   "attribution": "Modelled in code for this project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 1.2,
+    "d": 0.9,
+    "h": 2.1
+   },
+   "mount": "wall",
+   "finishVariants": [],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/shower.webp"
+  },
+  {
+   "id": "vanity",
+   "name": "Wall-hung vanity with vessel basin",
+   "category": "bathroom",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
    "attributionRequired": false,
    "source": null,
    "footprintMetres": {
@@ -416,11 +752,39 @@
     "d": 0.5,
     "h": 0.86
    },
-   "mount": "floor",
+   "mount": "wall",
+   "finishVariants": [
+    "oak",
+    "white",
+    "walnut",
+    "sage"
+   ],
    "triangles": null,
    "textureMegapixels": null,
    "fileKB": null,
    "thumbnail": "/assets/catalog/vanity.webp"
+  },
+  {
+   "id": "mirror-rect",
+   "name": "Rectangular bathroom mirror",
+   "category": "bathroom",
+   "kind": "procedural",
+   "file": null,
+   "license": "project",
+   "attribution": "Parametric model by this project (code)",
+   "attributionRequired": false,
+   "source": null,
+   "footprintMetres": {
+    "w": 0.7,
+    "d": 0.03,
+    "h": 0.9
+   },
+   "mount": "wall",
+   "finishVariants": [],
+   "triangles": null,
+   "textureMegapixels": null,
+   "fileKB": null,
+   "thumbnail": "/assets/catalog/mirror-rect.webp"
   },
   {
    "id": "wc",
@@ -429,7 +793,7 @@
    "kind": "procedural",
    "file": null,
    "license": "project",
-   "attribution": "Modelled in code for this project",
+   "attribution": "Parametric model by this project (code)",
    "attributionRequired": false,
    "source": null,
    "footprintMetres": {
@@ -437,7 +801,8 @@
     "d": 0.55,
     "h": 0.8
    },
-   "mount": "floor",
+   "mount": "wall",
+   "finishVariants": [],
    "triangles": null,
    "textureMegapixels": null,
    "fileKB": null,
@@ -459,6 +824,7 @@
     "h": 0.84
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 69345,
    "textureMegapixels": 6.3,
    "fileKB": 867,
@@ -480,6 +846,7 @@
     "h": 0.27
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 8697,
    "textureMegapixels": 3.1,
    "fileKB": 389,
@@ -492,7 +859,7 @@
    "kind": "procedural",
    "file": null,
    "license": "project",
-   "attribution": "Modelled in code for this project",
+   "attribution": "Parametric model by this project (code)",
    "attributionRequired": false,
    "source": null,
    "footprintMetres": {
@@ -501,6 +868,12 @@
     "h": 0.016
    },
    "mount": "floor",
+   "finishVariants": [
+    "ivory",
+    "stone",
+    "moss",
+    "clay"
+   ],
    "triangles": null,
    "textureMegapixels": null,
    "fileKB": null,
@@ -522,6 +895,7 @@
     "h": 1.12
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 7749,
    "textureMegapixels": 3.1,
    "fileKB": 289,
@@ -543,6 +917,7 @@
     "h": 0.8
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 4009,
    "textureMegapixels": 3.1,
    "fileKB": 201,
@@ -564,6 +939,7 @@
     "h": 1.06
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 5616,
    "textureMegapixels": 3.1,
    "fileKB": 415,
@@ -585,6 +961,7 @@
     "h": 1.06
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 3989,
    "textureMegapixels": 3.1,
    "fileKB": 273,
@@ -606,6 +983,7 @@
     "h": 0.62
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 4010,
    "textureMegapixels": 3.1,
    "fileKB": 310,
@@ -627,6 +1005,7 @@
     "h": 0.75
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 14373,
    "textureMegapixels": 3.1,
    "fileKB": 533,
@@ -648,6 +1027,7 @@
     "h": 0.96
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 672,
    "textureMegapixels": 3.1,
    "fileKB": 196,
@@ -669,6 +1049,7 @@
     "h": 0.99
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 11014,
    "textureMegapixels": 3.1,
    "fileKB": 278,
@@ -690,6 +1071,7 @@
     "h": 1.59
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 2623,
    "textureMegapixels": 3.1,
    "fileKB": 202,
@@ -711,6 +1093,7 @@
     "h": 0.89
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 624,
    "textureMegapixels": 3.1,
    "fileKB": 252,
@@ -732,6 +1115,7 @@
     "h": 0.52
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 9875,
    "textureMegapixels": 3.1,
    "fileKB": 355,
@@ -753,6 +1137,7 @@
     "h": 0.64
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 32402,
    "textureMegapixels": 3.1,
    "fileKB": 480,
@@ -774,6 +1159,7 @@
     "h": 0.37
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 12749,
    "textureMegapixels": 6.3,
    "fileKB": 466,
@@ -795,6 +1181,7 @@
     "h": 0.75
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 3662,
    "textureMegapixels": 3.1,
    "fileKB": 224,
@@ -816,6 +1203,7 @@
     "h": 0.55
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 950,
    "textureMegapixels": 3.1,
    "fileKB": 226,
@@ -837,6 +1225,7 @@
     "h": 0.42
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 1512,
    "textureMegapixels": 3.1,
    "fileKB": 226,
@@ -858,6 +1247,7 @@
     "h": 0.8
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 196,
    "textureMegapixels": 3.1,
    "fileKB": 204,
@@ -879,6 +1269,7 @@
     "h": 0.76
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 5538,
    "textureMegapixels": 3.1,
    "fileKB": 159,
@@ -900,6 +1291,7 @@
     "h": 0.7
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 1993,
    "textureMegapixels": 3.1,
    "fileKB": 158,
@@ -921,6 +1313,7 @@
     "h": 0.62
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 468,
    "textureMegapixels": 3.1,
    "fileKB": 267,
@@ -942,6 +1335,7 @@
     "h": 0.88
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 3870,
    "textureMegapixels": 3.1,
    "fileKB": 128,
@@ -963,6 +1357,7 @@
     "h": 0.95
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 7519,
    "textureMegapixels": 3.1,
    "fileKB": 333,
@@ -984,6 +1379,7 @@
     "h": 2.23
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 35536,
    "textureMegapixels": 7.3,
    "fileKB": 582,
@@ -1005,6 +1401,7 @@
     "h": 1.18
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 2137,
    "textureMegapixels": 3.1,
    "fileKB": 225,
@@ -1026,6 +1423,7 @@
     "h": 2.31
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 6367,
    "textureMegapixels": 6.3,
    "fileKB": 385,
@@ -1047,6 +1445,7 @@
     "h": 2.06
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 6203,
    "textureMegapixels": 3.1,
    "fileKB": 551,
@@ -1068,6 +1467,7 @@
     "h": 2.08
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 182,
    "textureMegapixels": 3.1,
    "fileKB": 316,
@@ -1089,6 +1489,7 @@
     "h": 1.09
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 4947,
    "textureMegapixels": 3.1,
    "fileKB": 292,
@@ -1110,6 +1511,7 @@
     "h": 1.53
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 18116,
    "textureMegapixels": 3.1,
    "fileKB": 392,
@@ -1131,6 +1533,7 @@
     "h": 0.86
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 12532,
    "textureMegapixels": 3.1,
    "fileKB": 278,
@@ -1152,6 +1555,7 @@
     "h": 0.89
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 19630,
    "textureMegapixels": 3.1,
    "fileKB": 490,
@@ -1173,6 +1577,7 @@
     "h": 0.95
    },
    "mount": "ceiling",
+   "finishVariants": [],
    "triangles": 5456,
    "textureMegapixels": 3.1,
    "fileKB": 153,
@@ -1194,6 +1599,7 @@
     "h": 1.35
    },
    "mount": "ceiling",
+   "finishVariants": [],
    "triangles": 9312,
    "textureMegapixels": 5.2,
    "fileKB": 491,
@@ -1215,6 +1621,7 @@
     "h": 0.85
    },
    "mount": "ceiling",
+   "finishVariants": [],
    "triangles": 20703,
    "textureMegapixels": 3.1,
    "fileKB": 444,
@@ -1236,6 +1643,7 @@
     "h": 0.52
    },
    "mount": "ceiling",
+   "finishVariants": [],
    "triangles": 11457,
    "textureMegapixels": 5.2,
    "fileKB": 237,
@@ -1257,6 +1665,7 @@
     "h": 0.43
    },
    "mount": "wall",
+   "finishVariants": [],
    "triangles": 4388,
    "textureMegapixels": 7.3,
    "fileKB": 437,
@@ -1278,6 +1687,7 @@
     "h": 0.38
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 12446,
    "textureMegapixels": 3.1,
    "fileKB": 287,
@@ -1299,6 +1709,7 @@
     "h": 0.74
    },
    "mount": "wall",
+   "finishVariants": [],
    "triangles": 10621,
    "textureMegapixels": 3.1,
    "fileKB": 207,
@@ -1320,6 +1731,7 @@
     "h": 0.84
    },
    "mount": "wall",
+   "finishVariants": [],
    "triangles": 2193,
    "textureMegapixels": 5.2,
    "fileKB": 102,
@@ -1341,6 +1753,7 @@
     "h": 0.5
    },
    "mount": "wall",
+   "finishVariants": [],
    "triangles": 2525,
    "textureMegapixels": 6.3,
    "fileKB": 200,
@@ -1362,6 +1775,7 @@
     "h": 0.25
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 1574,
    "textureMegapixels": 4.2,
    "fileKB": 139,
@@ -1383,6 +1797,7 @@
     "h": 0.69
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 16325,
    "textureMegapixels": 3.1,
    "fileKB": 216,
@@ -1404,6 +1819,7 @@
     "h": 0.4
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 9784,
    "textureMegapixels": 3.1,
    "fileKB": 99,
@@ -1425,6 +1841,7 @@
     "h": 0.31
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 10678,
    "textureMegapixels": 3.1,
    "fileKB": 281,
@@ -1446,6 +1863,7 @@
     "h": 0.34
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 8896,
    "textureMegapixels": 3.1,
    "fileKB": 193,
@@ -1467,6 +1885,7 @@
     "h": 0.44
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 8924,
    "textureMegapixels": 3.1,
    "fileKB": 172,
@@ -1488,6 +1907,7 @@
     "h": 0.12
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 21674,
    "textureMegapixels": 3.1,
    "fileKB": 462,
@@ -1509,6 +1929,7 @@
     "h": 0.45
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 6356,
    "textureMegapixels": 3.1,
    "fileKB": 864,
@@ -1530,6 +1951,7 @@
     "h": 0.16
    },
    "mount": "on surfaces",
+   "finishVariants": [],
    "triangles": 15452,
    "textureMegapixels": 3.1,
    "fileKB": 318,
@@ -1551,6 +1973,7 @@
     "h": 1.34
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 153761,
    "textureMegapixels": 6.3,
    "fileKB": 1588,
@@ -1572,6 +1995,7 @@
     "h": 0.42
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 6898,
    "textureMegapixels": 3.1,
    "fileKB": 341,
@@ -1593,6 +2017,7 @@
     "h": 0.3
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 3374,
    "textureMegapixels": 3.1,
    "fileKB": 174,
@@ -1614,6 +2039,7 @@
     "h": 0.47
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 14394,
    "textureMegapixels": 3.1,
    "fileKB": 251,
@@ -1635,6 +2061,7 @@
     "h": 0.73
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 4959,
    "textureMegapixels": 6.3,
    "fileKB": 440,
@@ -1656,6 +2083,7 @@
     "h": 0.43
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 2384,
    "textureMegapixels": 3.1,
    "fileKB": 146,
@@ -1677,6 +2105,7 @@
     "h": 0.4
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 76108,
    "textureMegapixels": 3.1,
    "fileKB": 814,
@@ -1698,6 +2127,7 @@
     "h": 0.86
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 9600,
    "textureMegapixels": 6.3,
    "fileKB": 402,
@@ -1719,6 +2149,7 @@
     "h": 0.75
    },
    "mount": "floor",
+   "finishVariants": [],
    "triangles": 7991,
    "textureMegapixels": 6.3,
    "fileKB": 480,

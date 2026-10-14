@@ -7,6 +7,9 @@ import { getAsset, type AssetDef } from '../../engine/assets/catalog'
 import type { Item, Project } from '../../engine/model/types'
 import { useEditor } from '../store'
 import type { PickHandlers } from './Building'
+import { Bath, MirrorRect, Shower, Vanity, Wc } from './fixtures/bathroom'
+import { Bed, DiningTable, Desk, Wardrobe } from './fixtures/bedroom'
+import { CookerHood, FridgeSteel, KitchenIsland, KitchenRun, KitchenTallFridge, KitchenWallUnits } from './fixtures/kitchen'
 import { MATS } from './materials'
 
 /* ---------- glTF assets ---------- */
@@ -77,12 +80,7 @@ function GltfAsset({ asset }: { asset: AssetDef }) {
 /* ---------- Procedural (studio-modelled) assets ---------- */
 
 const linenMat = new THREE.MeshStandardMaterial({ color: '#d8cdbc', roughness: 1 })
-const boucleMat = new THREE.MeshStandardMaterial({ color: '#ece6da', roughness: 1 })
 const rugMat = new THREE.MeshStandardMaterial({ color: '#d9cfbf', roughness: 1 })
-const throwMat = new THREE.MeshStandardMaterial({ color: '#b9a48a', roughness: 1 })
-const hobMat = new THREE.MeshStandardMaterial({ color: '#141414', roughness: 0.2 })
-const bathInnerMat = new THREE.MeshStandardMaterial({ color: '#e9eef0', roughness: 0.15 })
-const mirrorMat = new THREE.MeshStandardMaterial({ color: '#cfd8da', roughness: 0.02, metalness: 0.9 })
 
 function useFabric(texture: string, tint: string, tile: number, base: THREE.MeshStandardMaterial) {
   const [color, normal] = useTexture([`/assets/textures/${texture}/color.webp`, `/assets/textures/${texture}/normal.webp`])
@@ -135,130 +133,6 @@ function Sofa({ a, variant }: ProcProps) {
   )
 }
 
-function Bed({ a, variant }: ProcProps) {
-  const mat = useFabric('curly_teddy_natural', tintOf(a, variant, '#e6dfd2'), 0.5, boucleMat)
-  const { w, d } = a.footprint
-  return (
-    <group position-z={-d / 2}>
-      <Block size={[w, 0.32, d - 0.08]} pos={[0, 0.2, d / 2 + 0.04]} mat={mat} r={0.05} />
-      <Block size={[w - 0.06, 0.24, d - 0.16]} pos={[0, 0.48, d / 2 + 0.06]} mat={MATS.ceramic} r={0.06} />
-      <Block size={[w + 0.04, 1.05, 0.1]} pos={[0, 0.525, 0.05]} mat={mat} r={0.05} />
-      <Block size={[w - 0.04, 0.06, d * 0.55]} pos={[0, 0.62, d * 0.62]} mat={throwMat} r={0.03} />
-      {[-1, 1].map((s) => (
-        <Block key={s} size={[w / 2 - 0.12, 0.13, 0.42]} pos={[(s * w) / 4, 0.67, 0.36]} mat={MATS.ceramic} r={0.06} />
-      ))}
-    </group>
-  )
-}
-
-function Wardrobe({ a }: { a: AssetDef }) {
-  const { w, d, h } = a.footprint
-  return (
-    <group>
-      <Block size={[w, h - 0.08, d]} pos={[0, h / 2 + 0.04, 0]} mat={MATS.oak} r={0.008} />
-      <Block size={[w - 0.04, 0.08, d - 0.06]} pos={[0, 0.04, -0.02]} mat={MATS.walnut} r={0.005} />
-      <mesh position={[0, h / 2, d / 2 + 0.001]} material={MATS.walnut}>
-        <boxGeometry args={[0.006, h - 0.2, 0.004]} />
-      </mesh>
-      {[-1, 1].map((s) => (
-        <mesh key={s} position={[s * 0.06, h * 0.55, d / 2 + 0.015]} material={MATS.steel}>
-          <boxGeometry args={[0.015, 0.35, 0.02]} />
-        </mesh>
-      ))}
-    </group>
-  )
-}
-
-function KitchenRun({ a }: { a: AssetDef }) {
-  const { w, d } = a.footprint
-  const doors = Math.round(w / 0.6)
-  return (
-    <group>
-      <Block size={[w, 0.1, d - 0.06]} pos={[0, 0.05, -0.03]} mat={MATS.walnut} r={0.005} />
-      <Block size={[w, 0.78, d - 0.02]} pos={[0, 0.49, -0.01]} mat={MATS.cabinet} r={0.006} />
-      {Array.from({ length: doors - 1 }, (_, i) => (
-        <mesh key={i} position={[-w / 2 + (w / doors) * (i + 1), 0.49, d / 2 - 0.005]} material={MATS.walnut}>
-          <boxGeometry args={[0.004, 0.74, 0.004]} />
-        </mesh>
-      ))}
-      <Block size={[w, 0.04, d]} pos={[0, 0.9, 0]} mat={MATS.counter} r={0.006} />
-      {/* sink & hob */}
-      <mesh position={[-w * 0.22, 0.915, 0.02]} material={MATS.steel}>
-        <boxGeometry args={[0.55, 0.012, 0.4]} />
-      </mesh>
-      <mesh position={[w * 0.25, 0.922, 0.02]} material={hobMat}>
-        <boxGeometry args={[0.6, 0.006, 0.5]} />
-      </mesh>
-      <mesh position={[-w * 0.22, 1.08, -d / 2 + 0.08]} material={MATS.steel}>
-        <cylinderGeometry args={[0.012, 0.012, 0.32, 12]} />
-      </mesh>
-    </group>
-  )
-}
-
-function Island({ a }: { a: AssetDef }) {
-  const { w, d } = a.footprint
-  return (
-    <group>
-      <Block size={[w - 0.1, 0.82, d - 0.2]} pos={[0, 0.45, -0.05]} mat={MATS.cabinet} r={0.006} />
-      <Block size={[w, 0.05, d]} pos={[0, 0.895, 0]} mat={MATS.counter} r={0.008} />
-    </group>
-  )
-}
-
-function Desk({ a }: { a: AssetDef }) {
-  const { w, d, h } = a.footprint
-  return (
-    <group>
-      <Block size={[w, 0.035, d]} pos={[0, h - 0.0175, 0]} mat={MATS.oak} r={0.008} />
-      {[-1, 1].map((sx) =>
-        [-1, 1].map((sz) => (
-          <mesh key={`${sx}${sz}`} position={[sx * (w / 2 - 0.05), (h - 0.035) / 2, sz * (d / 2 - 0.05)]} material={MATS.frame} castShadow>
-            <boxGeometry args={[0.03, h - 0.035, 0.03]} />
-          </mesh>
-        )),
-      )}
-    </group>
-  )
-}
-
-function Bath({ a }: { a: AssetDef }) {
-  const { w, d, h } = a.footprint
-  const inner = useMemo(() => rbox(w - 0.14, h, d - 0.14, 0.12), [w, d, h])
-  return (
-    <group>
-      <Block size={[w, h, d]} pos={[0, h / 2, 0]} mat={MATS.ceramic} r={0.12} />
-      <mesh geometry={inner} position={[0, h / 2 + 0.06, 0]} material={bathInnerMat} />
-    </group>
-  )
-}
-
-function Vanity({ a }: { a: AssetDef }) {
-  const { w, d, h } = a.footprint
-  return (
-    <group>
-      <Block size={[w, 0.5, d]} pos={[0, h - 0.3, 0]} mat={MATS.oak} r={0.01} />
-      <Block size={[w * 0.6, 0.12, d * 0.7]} pos={[0, h + 0.01, 0]} mat={MATS.ceramic} r={0.05} />
-      <mesh position={[0, h + 0.5, -d / 2 + 0.01]} material={mirrorMat}>
-        <boxGeometry args={[w * 0.8, 0.7, 0.015]} />
-      </mesh>
-    </group>
-  )
-}
-
-function Wc({ a }: { a: AssetDef }) {
-  const { d } = a.footprint
-  return (
-    <group position-z={-d / 2}>
-      <Block size={[0.36, 0.38, 0.16]} pos={[0, 0.85, 0.08]} mat={MATS.ceramic} r={0.03} />
-      <mesh position={[0, 0.4, 0.3]} scale={[0.18, 0.12, 0.26]} material={MATS.ceramic} castShadow>
-        <sphereGeometry args={[1, 24, 16]} />
-      </mesh>
-      <Block size={[0.3, 0.18, 0.36]} pos={[0, 0.38, 0.2]} mat={MATS.ceramic} r={0.06} />
-    </group>
-  )
-}
-
 function Rug({ a, variant }: ProcProps) {
   const mat = useFabric('curly_teddy_natural', tintOf(a, variant, '#dfd5c4'), 0.22, rugMat)
   const g = useMemo(() => rbox(a.footprint.w, a.footprint.h, a.footprint.d, 0.006), [a])
@@ -269,13 +143,25 @@ type ProcProps = { a: AssetDef; variant?: string }
 const PROCEDURAL: Record<string, (p: ProcProps) => ReactNode> = {
   'sofa-arlo': Sofa,
   'bed-double': Bed,
+  'bed-single': Bed,
+  'bed-king': Bed,
   wardrobe: Wardrobe,
+  'wardrobe-3door': Wardrobe,
   'kitchen-run': KitchenRun,
-  'kitchen-island': Island,
+  'kitchen-run-short': KitchenRun,
+  'kitchen-island': KitchenIsland,
+  'kitchen-wall-units': KitchenWallUnits,
+  'kitchen-tall-fridge': KitchenTallFridge,
+  'fridge-steel': FridgeSteel,
+  'cooker-hood': CookerHood,
   desk: Desk,
+  'table-dining-rect': DiningTable,
+  'table-dining-rect-small': DiningTable,
   bath: Bath,
   vanity: Vanity,
   wc: Wc,
+  shower: Shower,
+  'mirror-rect': MirrorRect,
   'rug-wool': Rug,
 }
 

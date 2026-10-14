@@ -51,7 +51,7 @@ export function buildColliders(p: Project, level: Id, minItemHeight = 0.25): Col
     // floor-standing only: wall and ceiling items and things on tables are not in the way
     .filter((it) => {
       const a = getAsset(it.asset)
-      return it.level === level && !!a && !a.walkable && !a.mount && !(it.z && it.z > 0.25) && a.footprint.h > minItemHeight
+      return it.level === level && !!a && !a.walkable && a.mount !== 'ceiling' && !(it.z && it.z > 0.25) && a.footprint.h > minItemHeight
     })
     .map((it) => ({ corners: itemCorners(it), item: it.id }))
   return { capsules, boxes }

@@ -1,4 +1,5 @@
 import { getAsset } from '../assets/catalog'
+import { EXTERIOR_FINISHES } from '../assets/finishes'
 import { insetPolygon, isSimplePolygon, pointInPolygon, signedArea, area as polyArea } from '../geometry/polygon'
 import { add, closestOnSegment, cross, dist, dot, norm, scale, sub, type V2 } from '../geometry/vec'
 import { openingCenter, usableRange } from '../geometry/walls'
@@ -353,6 +354,14 @@ export function deleteRoom(p: Project, args: { room: Id }): CommandResult {
   }
   for (const n of Object.values(d.p.nodes)) if (!wallsAtNode(d.p, n.id).length) delete d.p.nodes[n.id]
   return finish(d, `Delete ${r.name}`)
+}
+
+/** Choose the building's facade finish (exterior faces of external walls). */
+export function setFacade(p: Project, args: { finish: string }): CommandResult {
+  if (!EXTERIOR_FINISHES.some((f) => f.id === args.finish)) return fail('finish', 'Unknown facade finish')
+  const d = new Draft(p)
+  d.p.facade = args.finish
+  return finish(d, 'Change facade')
 }
 
 export function addLevel(p: Project, args: { name?: string; height?: number }): CommandResult {

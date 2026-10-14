@@ -1,6 +1,6 @@
 import { CameraControls, type CameraControlsImpl } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { getAsset } from '../../engine/assets/catalog'
 import { addItem, addOpening } from '../../engine/commands/elements'
@@ -13,17 +13,19 @@ import { useEditor, useProject, type Selection } from '../store'
 import { Building, type PickHandlers } from './Building'
 import { Items } from './Items'
 import { preloadAsset } from './preload'
-import { preloadFinishTextures } from './materials'
 import { Site } from './Site'
 import { preloadSky } from './sky'
+import { preloadSurfaces } from './fixtures/surfaces'
+import { preloadProjectFinishes } from './materials'
 import { QUALITY } from './quality'
 import { Manipulator, type DragState } from './Manipulator'
 import { Walkthrough } from './Walkthrough'
 import { FreeFly } from './FreeFly'
 import { framePose, ORBIT_FOV, presetPose, type ViewPreset } from './framing'
 
-preloadFinishTextures()
 preloadSky(useEditor.getState().nav.quality)
+preloadSurfaces()
+preloadProjectFinishes(useEditor.getState().history.present)
 
 /** The orbit pose to come back to after walking or flying (module state: survives the rig unmounting). */
 let savedOrbit: { position: THREE.Vector3; target: THREE.Vector3 } | null = null
@@ -231,15 +233,37 @@ function SceneContent({ frameKey }: { frameKey: number }) {
   )
 }
 
+/**
+ * First render compiles ~16 shader programs. Compiled synchronously by the first draw, that froze the
+ * main thread for 3–4 s on ANGLE/D3D11 (measured). compileAsync uses KHR_parallel_shader_compile, so
+ * the page stays responsive; rendering starts when it resolves (mounted after the scene's assets load).
+ */
+function Precompile({ onDone }: { onDone: () => void }) {
+  const getThree = useThree((s) => s.get)
+  useEffect(() => {
+    const { gl, scene, camera } = getThree()
+    let live = true
+    gl.compileAsync(scene, camera)
+      .catch(() => undefined)
+      .finally(() => live && onDone())
+    return () => {
+      live = false
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return null
+}
+
 export function Scene3D({ frameKey }: { frameKey: number }) {
   const camera = useEditor((s) => s.camera)
   const quality = useEditor((s) => s.nav.quality)
+  // Hold rendering until every shader program has compiled in parallel (see Precompile).
+  const [compiled, setCompiled] = useState(false)
   return (
     <div className="relative h-full w-full bg-[#c9d6e0]" data-testid="scene-view" data-quality={quality}>
       <Canvas
         shadows="percentage"
         dpr={QUALITY[quality].dpr}
-        frameloop={camera === 'orbit' ? 'demand' : 'always'}
+        frameloop={!compiled ? 'never' : camera === 'orbit' ? 'demand' : 'always'}
         camera={{ fov: ORBIT_FOV, near: 0.05, far: 200, position: [14, 10, 14] }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => {
@@ -254,6 +278,7 @@ export function Scene3D({ frameKey }: { frameKey: number }) {
         <color attach="background" args={['#c9d6e0']} />
         <Suspense fallback={null}>
           <SceneContent frameKey={frameKey} />
+          <Precompile onDone={() => setCompiled(true)} />
         </Suspense>
       </Canvas>
     </div>

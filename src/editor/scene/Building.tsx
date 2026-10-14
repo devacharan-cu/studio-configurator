@@ -7,8 +7,8 @@ import { openingsOnWall, roomPolygon, wallFrame, wallsAtNode } from '../../engin
 import { isOutdoor, type Id, type Opening, type Project, type Room, type Wall } from '../../engine/model/types'
 import { useEditor, type Selection } from '../store'
 import { facesToGeometry, polygonGeometry } from './buildGeometry'
-import type { FinishDef } from '../../engine/assets/finishes'
-import { MATS, useFinishMaterial, useFloorMaterials, useWallMaterials } from './materials'
+import { finishById, getExteriorFinish, getFloorFinish, WALL_FINISHES, type FinishDef } from '../../engine/assets/finishes'
+import { MATS, useFinishMaterial } from './materials'
 
 export interface PickHandlers {
   onPick: (s: Selection, e: ThreeEvent<PointerEvent>) => void
@@ -24,7 +24,7 @@ function wallSignature(p: Project, w: Wall, sides: { left?: Id; right?: Id }, di
   const ops = openingsOnWall(p, w.id)
     .map((o) => `${o.offset.toFixed(4)}/${o.width}/${o.height}/${o.sill}/${o.kind}`)
     .join('|')
-  const finish = (id?: Id) => (id ? p.rooms[id]?.wallFinish : 'ext')
+  const finish = (id?: Id) => (id ? p.rooms[id]?.wallFinish : `ext:${p.facade ?? ''}`)
   return `${w.thickness}/${w.height}/${display}/${neighbours}/${ops}/${finish(sides.left)}/${finish(sides.right)}`
 }
 
@@ -47,10 +47,14 @@ const WallMesh = memo(function WallMesh({
   signature: string
   handlers: PickHandlers
 }) {
-  const materials = useWallMaterials()
+  // each face's finish: the room's wall finish, or the building's facade outside
+  const finishOf = (room?: Id) => (room ? project.rooms[room]?.wallFinish ?? 'chalk-white' : getExteriorFinish(project.facade).id)
+  const leftId = finishOf(sides.left)
+  const rightId = finishOf(sides.right)
+  const leftMat = useFinishMaterial(finishById(leftId) ?? WALL_FINISHES[0], `wall:${leftId}`)
+  const rightMat = useFinishMaterial(finishById(rightId) ?? WALL_FINISHES[0], `wall:${rightId}`)
   const { geometry, groupsMats } = useMemo(() => {
     const solid = wallSolid(project, wall, elevation, display)
-    const finishOf = (room?: Id) => (room ? project.rooms[room]?.wallFinish ?? 'chalk-white' : 'exterior-render')
     const buckets: { key: string; faces: Face[]; mat: THREE.Material }[] = []
     const put = (key: string, mat: THREE.Material, f: Face) => {
       let b = buckets.find((x) => x.key === key)
@@ -58,8 +62,8 @@ const WallMesh = memo(function WallMesh({
       b.faces.push(f)
     }
     for (const f of solid.faces) {
-      if (f.role === 'left') put(`L${finishOf(sides.left)}`, materials.get(finishOf(sides.left))!, f)
-      else if (f.role === 'right') put(`R${finishOf(sides.right)}`, materials.get(finishOf(sides.right))!, f)
+      if (f.role === 'left') put(`L${leftId}`, leftMat, f)
+      else if (f.role === 'right') put(`R${rightId}`, rightMat, f)
       else if (f.role === 'top') put('top', display < wall.height ? MATS.wallTop : MATS.trim, f)
       else put('trim', MATS.trim, f)
     }
@@ -87,7 +91,7 @@ const WallMesh = memo(function WallMesh({
     merged.computeBoundingSphere()
     return { geometry: merged, groupsMats: buckets.map((b) => b.mat) }
     // `signature` captures every project dependency of this wall's geometry (corners, neighbours, openings, finishes)
-  }, [materials, elevation, display, signature]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [leftMat, rightMat, elevation, display, signature]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => geometry.dispose(), [geometry])
   return (
@@ -111,7 +115,8 @@ const WallMesh = memo(function WallMesh({
 }, (a, b) => a.signature === b.signature && a.selected === b.selected && a.elevation === b.elevation && a.handlers === b.handlers)
 
 function Floor({ project, room, elevation, handlers, selected }: { project: Project; room: Room; elevation: number; handlers: PickHandlers; selected: boolean }) {
-  const mats = useFloorMaterials()
+  const floor = getFloorFinish(room.floorFinish)
+  const material = useFinishMaterial(floor, `floor:${floor.id}`)
   const key = room.boundary.map((id) => `${project.nodes[id].x},${project.nodes[id].y}`).join('|')
   const geometry = useMemo(() => polygonGeometry(roomPolygon(project, room), elevation, true), [key, elevation]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => geometry.dispose(), [geometry])
@@ -119,7 +124,7 @@ function Floor({ project, room, elevation, handlers, selected }: { project: Proj
     <group>
       <mesh
         geometry={geometry}
-        material={mats.get(room.floorFinish) ?? mats.values().next().value}
+        material={material}
         receiveShadow
         name={`floor:${room.id}`}
         onPointerDown={(e) => handlers.onPick({ kind: 'room', id: room.id }, e)}

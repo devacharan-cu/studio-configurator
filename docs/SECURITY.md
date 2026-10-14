@@ -1,5 +1,20 @@
 # Security review
 
+## Phase 3 — M3 (2026-10-15)
+
+| Check | Result |
+|---|---|
+| `npm audit` | 0 vulnerabilities (no new dependencies) |
+| Semgrep (5 rulesets) over `src`, `tests`, `scripts` | 0 findings, 93 files |
+| Gitleaks over `src`, `scripts`, `public`, `docs` | no leaks |
+
+**New surfaces:**
+- **`Project.facade`** is an optional, length-bounded string in the parser. `setFacade` accepts only
+  known facade finishes, and the renderer falls back to the default for unknown ids, so a hostile file
+  can't select an arbitrary texture path.
+- **The lawn's shader patch** is a fixed string compiled once; no user input reaches shader code.
+- **Texture paths** come only from bundled finish and surface definitions.
+
 ## Phase 3 — M2 (2026-10-15)
 
 | Check | Result |

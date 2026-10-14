@@ -520,3 +520,54 @@ FBX-only books (reasons in ASSETS.md).
 - **The heaviest model has 154k triangles** (a leafy plant).
 
 **Commit:** `6aff0eb`, pushed to `origin/feature/house-library-and-assets` (fast-forward, no force), author and committer `devacharan-cu <devacharan@gmail.com>`. The in-progress P3-M3 edits were kept out of this commit, and a rebuild produced identical bundle hashes to the build the browser suite tested.
+
+## P3-M3 — Materials and interior realism
+
+**What changed and why:**
+- **Finish library:**
+  - floors 4 → 15: light oak, parquet, terrazzo, terracotta, checkerboard, granite, polished
+    concrete, pebble mosaic, teak deck, patio, crazy paving;
+  - walls 4 → 9: warm greige, white wall tile, white panelling, whitewashed brick, stone cladding;
+  - a new per-project **facade** with 6 finishes (render, stucco, sandstone, charcoal, brick, stone),
+    picked in the project panel.
+  - All are CC0 textures with physical tile sizes, and textures load only when a finish is used.
+- **Parametric fixtures** (D21) replace the block placeholders:
+  - kitchen: run in 3 m and 2.4 m, an island with a seating overhang and waterfall ends, wall units,
+    a tall fridge housing, a steel fridge, a cooker hood; with 5 finish combinations (fronts,
+    worktop and handles);
+  - bathroom: freestanding bath, vanity (4 finishes), wall-hung WC, walk-in shower, mirror;
+  - bedroom and study: beds in single, double and king; wardrobes with 2 and 3 doors (5 finishes);
+    desk; dining tables of 1.8 m and 1.4 m.
+  - Kitchen runs, vanities, WCs, showers, tall units and hoods snap to walls.
+- **Mirrors:** a true planar reflection at Quality only, with its cost measured (D21).
+- **Site:**
+  - the terrace follows the house footprint (roof outline offset 1.2 m);
+  - the lawn breaks up its repetition with a two-scale, two-texture blend under a low-frequency
+    variation (a shader patch on the lawn only).
+- **Startup** (D22): parallel shader precompile, preloaded surfaces and project finishes, lazy
+  finish textures. The longest main-thread freeze went from 3.2 s to 1.75 s, with total blocking from
+  5.0 s to 3.9 s.
+
+**Defects found and fixed:**
+
+| # | Defect | Cause | Fix |
+|---|---|---|---|
+| 1 | Worktops showed a tile grid | Poly Haven `marble_01` is a tiled floor | Quartz surface: fine-grain set, tinted, without its colour map |
+| 2 | Steel and the hob looked olive or blue | Mirror-like metal reflecting the green lawn HDRI | Brushed steel at 0.75 metal, 0.42 rough; hob at 0.18 rough |
+| 3 | Malformed WC (seat beside a hemisphere) | The first geometry attempt | Lathed elongated bowl, torus seat, oval lid, carrier box |
+| 4 | Load "regressed" to 6–7 s | A 3–4 s main-thread stall that already existed in P3-M2; the earlier metric (time to first sky) hid it | Profiled: shader linking and texture upload; fixed (D22) |
+| 5 | A bed's walnut texture was requested 5 s late | Sequential suspensions inside one component | Parallel preload of the fixtures' surface textures |
+| 6 | Docs: texture names vanished from an ASSETS.md section | An unquoted shell heredoc ran the backticks as commands | Rewrote that section from a file |
+| 7 | P3-M3 edits were made before P3-M2 was committed | Process slip | Backed up the M3 edits, committed M2 alone (identical bundle hashes to the tested build), then restored them |
+
+**Commands & results:** see TESTING "Phase 3 — M3".
+- unit 183/183;
+- E2E **50 passed, 2 skipped** (device-specific), 0 failed, 7.8 min;
+- `npm audit` 0, Semgrep 0 findings, 93 files, Gitleaks 0.
+
+**Known limitations:**
+- **Indirect light:** there is still no bounced light or ambient occlusion beyond contact shadows and
+  skirting.
+- **Startup** still spends about 1.9 s uploading textures and compiles late-loading models' shaders
+  on first use.
+- **Third-party furniture style** is mostly traditional or rustic (P3-M2).

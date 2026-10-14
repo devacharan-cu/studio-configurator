@@ -1,5 +1,48 @@
 # Testing record
 
+## Phase 3 — M3 materials and interior realism (2026-10-15)
+
+| Command | Result |
+|---|---|
+| `npx tsc -b` / `npx oxlint` / build | pass / 0 / pass; no dev handles or studio in `dist/` |
+| `npx vitest run` | 183/183 |
+| `npx playwright test` | **50 passed, 2 skipped** (device-specific), 0 failed, 7.8 min |
+| Thumbnail capture of the 19 rebuilt or new parametric pieces + mirror | 20/20 rendered, 0 load errors |
+
+**New tests:**
+- **Unit:**
+  - every finish (15 floors, 9 walls, 6 facades) has its texture set on disk, and ids are unique;
+  - the facade is validated, undoable and survives save/load;
+  - per-asset completeness for the 12 new parametric entries.
+- **E2E:**
+  - change the facade from the project panel, then undo and redo;
+  - give the kitchen run walnut fronts with a terrazzo worktop;
+  - reload, and both persist.
+
+**Visual inspection:**
+- `p3m3-parametric-sheet.jpg`: every parametric piece.
+- In the house: kitchen run, island, bathroom, bedroom and study in walk and fly
+  (`p3m3-kitchen*.jpg`, `p3m3-bathroom.jpg`).
+- `p3m3-mirror-reflection.jpg`: the real mirror reflection.
+- `p3m3-site-lawn.jpg`: aerial view of the lawn and terrace.
+
+**Defects found by inspection and fixed:**
+- Marble worktops showed a tile grid: the texture is a tiled floor.
+- Glossy steel and the hob reflected the green lawn.
+- The first WC model was malformed.
+- The shower tray was too brown.
+- Quartz rendered dark grey: the colour map was dark.
+
+**Performance** (production build, headed, Radeon 610M, 1×). Median / p95 ms:
+
+| Level | Orbit | Walk | Fly |
+|---|---|---|---|
+| Performance | 16.5 / 16.8 | 8.3 / 12.5 | 12.5 / 12.6 |
+| Balanced | 16.7 / 16.8 | 8.4 / 12.6 | 12.5 / 16.7 |
+
+- No frames over 50 ms.
+- The mirror costs about +4 ms at Quality (D21).
+- Startup main-thread blocking is in D22.
 ## Phase 3 — M2 asset library (2026-10-15)
 
 | Command | Result |

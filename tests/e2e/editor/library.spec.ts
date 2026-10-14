@@ -111,6 +111,25 @@ test.describe('house templates and furniture library', () => {
     await expect.poll(async () => Object.values((await saved(page)).items).find((i) => i.asset === 'vase-white')?.z).toBeCloseTo(0.39, 2)
     await expect(page.getByTestId('item-credit')).toContainText('CC0')
   })
+
+  test('finishes: the facade and a kitchen finish change from the inspector, undo, and persist', async ({ page }) => {
+    // project panel (nothing selected): facade
+    await page.getByRole('radio', { name: 'Whitewashed brick' }).first().click()
+    await expect.poll(async () => (await saved(page)).facade).toBe('facade-brick')
+    await page.locator('body').press('Control+z')
+    await expect.poll(async () => (await saved(page)).facade).toBeUndefined()
+    await page.locator('body').press('Control+Shift+z')
+    await expect.poll(async () => (await saved(page)).facade).toBe('facade-brick')
+    // select the kitchen run in the plan and give it walnut fronts with a terrazzo worktop
+    await clickPlan(page, 8.1, 0.35)
+    await page.getByRole('radio', { name: 'Walnut fronts, terrazzo worktop' }).click()
+    await expect.poll(async () => Object.values((await saved(page)).items).find((i) => i.asset === 'kitchen-run')?.variant).toBe('walnut-terrazzo')
+    await page.reload()
+    await expect(page.locator('[data-room-label]')).toHaveCount(6)
+    const p = await saved(page)
+    expect(p.facade).toBe('facade-brick')
+    expect(Object.values(p.items).find((i) => i.asset === 'kitchen-run')?.variant).toBe('walnut-terrazzo')
+  })
 })
 
 test('every library model is served by the production build as a binary glTF', async ({ request }, info) => {

@@ -1,3 +1,4 @@
+import { useTexture } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
@@ -57,15 +58,47 @@ function groundGeometry(inner: number, outer: number, fade: boolean, cx: number,
   return g
 }
 
+/**
+ * Break up texture repetition on the lawn: blend the grass at two scales and with a second grass,
+ * under a low-frequency variation sampled from the textures themselves (no extra noise texture).
+ * Three extra texture reads on the lawn only; no change to any other material.
+ */
+function antiTile(m: THREE.MeshStandardMaterial, second: THREE.Texture) {
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.map2 = { value: second }
+    shader.fragmentShader = shader.fragmentShader.replace('#include <map_pars_fragment>', '#include <map_pars_fragment>' + String.fromCharCode(10) + 'uniform sampler2D map2;').replace(
+      '#include <map_fragment>',
+      `#ifdef USE_MAP
+        vec4 g1 = texture2D( map, vMapUv );
+        vec4 g2 = texture2D( map, vMapUv * 0.37 + vec2( 0.17, 0.53 ) );
+        vec4 g3 = texture2D( map2, vMapUv * 0.8 );
+        float n1 = texture2D( map, vMapUv * 0.043 ).g;
+        float n2 = texture2D( map2, vMapUv * 0.021 + vec2( 0.3 ) ).r;
+        vec4 grass = mix( g1, g2, smoothstep( 0.35, 0.65, n1 ) );
+        grass = mix( grass, g3, smoothstep( 0.4, 0.75, n2 ) * 0.55 );
+        diffuseColor *= grass * ( 0.86 + 0.28 * n2 );
+      #endif`,
+    )
+  }
+  m.customProgramCacheKey = () => 'lawn-antitile'
+  return m
+}
+
 function Lawn({ cx, cz }: { cx: number; cz: number }) {
-  const mat = useFinishMaterial(LAWN)
-  const ring = useMemo(() => {
-    const m = mat.clone()
-    m.transparent = true
-    m.vertexColors = true
-    m.depthWrite = false
-    return m
-  }, [mat])
+  const base = useFinishMaterial(LAWN)
+  const leafy = useTexture('/assets/textures/leafy_grass/color.webp')
+  const { mat, ring } = useMemo(() => {
+    const t = leafy.clone()
+    t.wrapS = t.wrapT = THREE.RepeatWrapping
+    t.colorSpace = THREE.SRGBColorSpace
+    t.needsUpdate = true
+    const mat = antiTile(base.clone(), t)
+    const ring = antiTile(base.clone(), t)
+    ring.transparent = true
+    ring.vertexColors = true
+    ring.depthWrite = false
+    return { mat, ring }
+  }, [base, leafy])
   // texture coordinates follow the world, so the grass doesn't slide when the building changes size
   const inner = useMemo(() => groundGeometry(45, 45, false, cx, cz), [cx, cz])
   const outer = useMemo(() => groundGeometry(45, 140, true, cx, cz), [cx, cz])
@@ -79,24 +112,32 @@ function Lawn({ cx, cz }: { cx: number; cz: number }) {
   )
 }
 
-/** A paved terrace around the house and a path from the front door. */
+/**
+ * A paved terrace that follows the house: the roof outline (room slabs plus strips along every
+ * exterior wall) offset 1.2 m beyond the walls, so an L-shaped or courtyard house gets an L-shaped or
+ * wrapped terrace rather than a rectangle; plus a path from the front door.
+ */
 function Paving({ project, level }: { project: Project; level: Id }) {
   const mat = useFinishMaterial(PAVING)
-  const b = planBounds(project, level)
   const front = entrances(project, level)[0]
   const geometry = useMemo(() => {
-    const m = 1.4
-    const faces: Face[] = [{ role: 'top', normal: [0, 1, 0], points: [[b.x0 - m, 0, b.y0 - m], [b.x1 + m, 0, b.y0 - m], [b.x1 + m, 0, b.y1 + m], [b.x0 - m, 0, b.y1 + m]] }]
+    const M = 1.2
+    const plan = roofPlan(project, level, M)
+    const up: [number, number, number] = [0, 1, 0]
+    const faces: Face[] = [
+      ...plan.slabs.map((poly) => ({ role: 'top' as const, normal: up, points: poly.map((q) => [q.x, 0, q.y] as [number, number, number]) })),
+      ...plan.strips.map((st) => ({ role: 'top' as const, normal: up, points: st.corners.map((q) => [q.x, 0, q.y] as [number, number, number]) })),
+    ]
     if (front) {
       const w = front.width / 2 + 0.35
       const side = { x: -front.outward.y, y: front.outward.x }
-      const p0 = { x: front.at.x + front.outward.x * (m - 0.05), y: front.at.y + front.outward.y * (m - 0.05) }
+      const p0 = { x: front.at.x + front.outward.x * (M - 0.05), y: front.at.y + front.outward.y * (M - 0.05) }
       const p1 = { x: front.at.x + front.outward.x * 9, y: front.at.y + front.outward.y * 9 }
       const q = (p: { x: number; y: number }, s: number): [number, number, number] => [p.x + side.x * w * s, 0.004, p.y + side.y * w * s]
-      faces.push({ role: 'top', normal: [0, 1, 0], points: [q(p0, -1), q(p0, 1), q(p1, 1), q(p1, -1)] })
+      faces.push({ role: 'top', normal: up, points: [q(p0, -1), q(p0, 1), q(p1, 1), q(p1, -1)] })
     }
     return facesToGeometry(faces)
-  }, [b.x0, b.x1, b.y0, b.y1, front?.at.x, front?.at.y, front?.outward.x, front?.outward.y, front?.width]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [project, level, front?.at.x, front?.at.y, front?.outward.x, front?.outward.y, front?.width]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => geometry.dispose(), [geometry])
   return <mesh geometry={geometry} material={mat} position-y={-0.014} receiveShadow raycast={() => null} />
 }

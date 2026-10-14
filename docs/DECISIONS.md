@@ -264,3 +264,58 @@ walkthrough:
 
 **Rejected:** free 3D placement with gravity or physics. It is heavier, harder to make predictable,
 and not needed for furnishing a home.
+
+## D21 — Kitchens, bathrooms, beds and wardrobes are parametric; mirrors reflect only at Quality
+
+No redistributable, realistic, contemporary models of these were found (RESEARCH.md Phase 3).
+Professional tools model cabinetry parametrically anyway, so these are built in code from real parts:
+- **Cabinetry:** recessed plinths, carcasses, separate fronts with 3 mm shadow gaps, bar pulls.
+- **Worktops:** extruded slabs with real cut-outs, so an undermount sink is visible through the hole.
+- **Appliances:** a ceramic hob with burner rings, a built-in oven, a swept-tube gooseneck tap.
+- **Sanitaryware:** an extruded hollow bath shell, a lathed vessel basin, a lathed wall-hung WC.
+- **Bedroom:** channel-tufted headboards, pillows and a folded duvet.
+
+Every surface is a CC0 PBR texture set (veneers, quartz, terrazzo, ceramic, fabrics), cached per
+spec. Finish variants (front + worktop + handle metal; cabinet colour; upholstery) are validated item
+variants (D20), so they undo and save.
+
+**Mirrors:**
+- At the **Quality** level, a mirror is a true planar reflection (three's `Reflector`: one extra
+  render of the scene into a 512-px target), only while the camera is within 6 m.
+- Otherwise it is a polished metal surface reflecting the environment map, at no extra cost.
+- **Measured** in the bathroom, at Quality and 1× resolution: 20.9 ms with the reflection versus
+  16.8 ms for Quality without one in P3-M2, about +4 ms.
+- **Rejected:** reflections on every glossy surface (SSR) or cube cameras. They cost a pass per
+  probe or per frame, for little gain in a home tour.
+
+## D22 — Startup: compile shaders in parallel before the first frame
+
+Opening the editor froze the main thread for 3–4 s. A CPU profile showed three.js linking about
+16 shader programs synchronously in the first draw (3.6 s) and uploading textures (1.9 s), on
+ANGLE/D3D11.
+
+The fix: a `Precompile` component calls `renderer.compileAsync(scene, camera)`, which uses
+KHR_parallel_shader_compile, after the scene's assets load. The render loop is held at `'never'`
+until it resolves, so the page stays responsive meanwhile.
+
+**Measured on the production build** (long tasks over the first 9 s, same machine):
+
+| | Total blocked | Longest freeze |
+|---|---|---|
+| P3-M2 build | 5.0 s | 3.2 s |
+| P3-M3 build | 3.9 s | 1.75 s |
+
+That is with more materials than before.
+
+**Also:**
+- Finish textures now load only for finishes in use; the library has about 30 sets.
+- The fixtures' surface textures and the project's finishes are preloaded in parallel. On-demand
+  loading inside a multi-surface component had serialised requests: the walnut on a bed's legs
+  started 5 s late.
+
+**Rejected:** turning off three's shader error checks in production. Measured, it only moves the
+stall to the first draw.
+
+**Remaining:**
+- texture upload (~1.9 s): KTX2/Basis compression would cut it, but needs the KTX toolchain;
+- shaders for models that finish loading after the precompile still compile on first use.

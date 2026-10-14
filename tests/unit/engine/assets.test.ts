@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { ASSETS, assetThumb, CATEGORY_LABELS, getAsset } from '../../../src/engine/assets/catalog'
+import { EXTERIOR_FINISHES, FLOOR_FINISHES, WALL_FINISHES } from '../../../src/engine/assets/finishes'
 import { addItem, duplicateItem, moveItem, setItemVariant } from '../../../src/engine/commands/elements'
-import { itemCorners, roomInnerPolygon } from '../../../src/engine/commands/structure'
+import { itemCorners, roomInnerPolygon, setFacade } from '../../../src/engine/commands/structure'
 import { pointInPolygon } from '../../../src/engine/geometry/polygon'
 import { parseProject, serializeProject } from '../../../src/engine/model/project'
 import { buildColliders } from '../../../src/engine/walk'
@@ -112,5 +113,24 @@ describe('placement: walls, ceilings and tabletops', () => {
     const files = new Set(ASSETS.filter((a) => a.kind === 'gltf').map((a) => a.url))
     expect(files.size).toBeGreaterThanOrEqual(60)
     for (const a of ASSETS.filter((x) => x.kind === 'gltf')) expect(a.license.source, a.id).toMatch(/^https:\/\/(polyhaven\.com|github\.com)\//)
+  })
+})
+
+describe('finish library', () => {
+  it('every floor, wall and facade finish has its texture set on disk, and ids are unique', () => {
+    const all = [...FLOOR_FINISHES, ...WALL_FINISHES, ...EXTERIOR_FINISHES]
+    expect(new Set(all.map((f) => f.id)).size).toBe(all.length)
+    expect(FLOOR_FINISHES.length).toBeGreaterThanOrEqual(15)
+    expect(WALL_FINISHES.length).toBeGreaterThanOrEqual(9)
+    for (const f of all) for (const m of ['color', 'normal', 'rough']) expect(existsSync(`public/assets/textures/${f.texture}/${m}.webp`), `${f.id} ${m}`).toBe(true)
+  })
+
+  it('the facade is a validated, undoable project setting that survives save/load', () => {
+    const p = blankWithRooms([0, 0, 4, 3])
+    expect(err(setFacade(p, { finish: 'neon-pink' }))).toBe('finish')
+    const q = ok(setFacade(p, { finish: 'facade-brick' }))
+    expect(q.facade).toBe('facade-brick')
+    const back = parseProject(serializeProject(q))
+    expect(back.ok && back.project.facade).toBe('facade-brick')
   })
 })

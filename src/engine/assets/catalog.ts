@@ -57,6 +57,23 @@ export interface AssetVariant {
   tint?: string
 }
 
+const KITCHEN: AssetVariant[] = [
+  { id: 'sage-quartz', name: 'Sage fronts, white quartz worktop, brass', swatch: '#8b9a80' },
+  { id: 'white-oak', name: 'White fronts, oak worktop', swatch: '#ecebe6' },
+  { id: 'walnut-terrazzo', name: 'Walnut fronts, terrazzo worktop', swatch: '#6b4a33' },
+  { id: 'charcoal-concrete', name: 'Charcoal fronts, concrete worktop', swatch: '#3e3e3c' },
+  { id: 'oak-quartz', name: 'Oak fronts, white quartz worktop', swatch: '#c49a6c' },
+]
+const CABINETS: AssetVariant[] = [
+  { id: 'white', name: 'White lacquer', swatch: '#efeee9' },
+  { id: 'oak', name: 'White oak', swatch: '#c49a6c' },
+  { id: 'walnut', name: 'Walnut', swatch: '#6b4a33' },
+  { id: 'sage', name: 'Sage lacquer', swatch: '#8b9a80' },
+  { id: 'greige', name: 'Greige lacquer', swatch: '#cfc5b6' },
+]
+const WOODS: AssetVariant[] = [CABINETS[1], CABINETS[2], CABINETS[0]]
+const VANITY: AssetVariant[] = [CABINETS[1], CABINETS[0], CABINETS[2], CABINETS[3]]
+
 const FABRICS: AssetVariant[] = [
   { id: 'oatmeal', name: 'Oatmeal linen', swatch: '#d6cab8', tint: '#d6cab8' },
   { id: 'sage', name: 'Sage linen', swatch: '#9aa58e', tint: '#a3ad94' },
@@ -76,7 +93,7 @@ const PH = (author: string, slug: string): AssetLicense => ({
   attribution: `Poly Haven — ${author}`,
   source: `https://polyhaven.com/a/${slug}`,
 })
-const STUDIO: AssetLicense = { spdx: 'project', attribution: 'Modelled in code for this project' }
+const STUDIO: AssetLicense = { spdx: 'project', attribution: 'Parametric model by this project (code)' }
 const m = (file: string) => `/assets/models/${file}.glb`
 
 export const ASSETS: AssetDef[] = [
@@ -108,25 +125,37 @@ export const ASSETS: AssetDef[] = [
   { id: 'table-dining-round', surface: 0.76, name: 'Round pedestal dining table', category: 'tables', kind: 'gltf', url: m('round_wooden_table_01'), scale: 0.76, footprint: { w: 1.06, d: 1.06, h: 0.76 }, license: PH('Ulan Cabanilla', 'round_wooden_table_01'), tris: 8600 },
   { id: 'table-side', surface: 0.55, name: 'Oak side table', category: 'tables', kind: 'gltf', url: m('side_table_01'), footprint: { w: 0.55, d: 0.45, h: 0.55 }, license: PH('James Ray Cock', 'side_table_01'), tris: 2500 },
   { id: 'bench-wood', surface: 0.53, name: 'Low wooden bench', category: 'tables', kind: 'gltf', url: m('small_wooden_table_01'), footprint: { w: 0.92, d: 0.44, h: 0.53 }, license: PH('Ulan Cabanilla', 'small_wooden_table_01'), tris: 3400 },
-  { id: 'desk', surface: 0.75, name: 'Writing desk', category: 'tables', kind: 'procedural', footprint: { w: 1.4, d: 0.7, h: 0.75 }, license: STUDIO },
+  { id: 'desk', surface: 0.75, name: 'Desk with drawer pedestal', category: 'tables', kind: 'procedural', footprint: { w: 1.4, d: 0.7, h: 0.75 }, license: STUDIO, variants: WOODS, tags: ['study', 'office'] },
+  { id: 'table-dining-rect', surface: 0.76, name: 'Dining table, 1.8 m (seats 6)', category: 'tables', kind: 'procedural', footprint: { w: 1.8, d: 0.9, h: 0.76 }, license: STUDIO, variants: WOODS, tags: ['dining', 'oak'] },
+  { id: 'table-dining-rect-small', surface: 0.76, name: 'Dining table, 1.4 m (seats 4)', category: 'tables', kind: 'procedural', footprint: { w: 1.4, d: 0.8, h: 0.76 }, license: STUDIO, variants: WOODS, tags: ['dining'] },
 
   // Storage
   { id: 'cabinet-media', surface: 0.68, name: 'Slatted media console', category: 'storage', kind: 'gltf', url: m('modern_wooden_cabinet'), footprint: { w: 2.44, d: 0.52, h: 0.68 }, license: PH('Patrik Pangerl', 'modern_wooden_cabinet'), tris: 13300 },
   { id: 'shelves-cube', name: 'Cube display shelving', category: 'storage', kind: 'gltf', url: m('wooden_display_shelves_01'), yaw: Math.PI / 2, footprint: { w: 1.08, d: 0.37, h: 1.56 }, license: PH('James Ray Cock', 'wooden_display_shelves_01'), tris: 3200 },
   { id: 'cabinet-drawers', name: 'Steel-frame drawer unit', category: 'storage', kind: 'gltf', url: m('drawer_cabinet'), footprint: { w: 1.14, d: 0.49, h: 1.88 }, license: PH('Ulan Cabanilla', 'drawer_cabinet'), tris: 26000 },
-  { id: 'wardrobe', name: 'Two-door wardrobe', category: 'storage', kind: 'procedural', footprint: { w: 1.8, d: 0.62, h: 2.2 }, license: STUDIO },
+  { id: 'wardrobe', name: 'Wardrobe, two doors', category: 'storage', kind: 'procedural', footprint: { w: 1.2, d: 0.6, h: 2.2 }, license: STUDIO, variants: CABINETS, tags: ['closet', 'bedroom'] },
+  { id: 'wardrobe-3door', name: 'Wardrobe, three doors', category: 'storage', kind: 'procedural', footprint: { w: 1.8, d: 0.6, h: 2.2 }, license: STUDIO, variants: CABINETS, tags: ['closet', 'bedroom'] },
 
   // Beds
-  { id: 'bed-double', surface: 0.62, name: 'Upholstered double bed', category: 'beds', kind: 'procedural', footprint: { w: 1.7, d: 2.15, h: 1.05 }, license: STUDIO, variants: BOUCLE, tags: ['bedroom'] },
+  { id: 'bed-double', surface: 0.62, name: 'Upholstered double bed (1.5 m)', category: 'beds', kind: 'procedural', footprint: { w: 1.6, d: 2.13, h: 1.03 }, license: STUDIO, variants: BOUCLE, tags: ['bedroom', 'queen'] },
+  { id: 'bed-king', surface: 0.62, name: 'Upholstered king bed (1.8 m)', category: 'beds', kind: 'procedural', footprint: { w: 1.9, d: 2.13, h: 1.03 }, license: STUDIO, variants: BOUCLE, tags: ['bedroom', 'master'] },
+  { id: 'bed-single', surface: 0.62, name: 'Upholstered single bed (0.9 m)', category: 'beds', kind: 'procedural', footprint: { w: 1.0, d: 2.13, h: 1.03 }, license: STUDIO, variants: BOUCLE, tags: ['bedroom', 'kids', 'guest'] },
 
   // Kitchen
-  { id: 'kitchen-run', surface: 0.92, name: 'Kitchen run, 3 m', category: 'kitchen', kind: 'procedural', footprint: { w: 3.0, d: 0.62, h: 0.95 }, license: STUDIO },
-  { id: 'kitchen-island', surface: 0.92, name: 'Kitchen island', category: 'kitchen', kind: 'procedural', footprint: { w: 1.8, d: 0.9, h: 0.92 }, license: STUDIO },
+  { id: 'kitchen-run', surface: 0.9, name: 'Kitchen run, 3 m (sink, hob, oven)', category: 'kitchen', kind: 'procedural', mount: 'wall', wallHeight: 0, footprint: { w: 3.0, d: 0.62, h: 0.95 }, license: STUDIO, variants: KITCHEN, tags: ['cabinets', 'counter', 'sink', 'hob'] },
+  { id: 'kitchen-run-short', surface: 0.9, name: 'Kitchen run, 2.4 m', category: 'kitchen', kind: 'procedural', mount: 'wall', wallHeight: 0, footprint: { w: 2.4, d: 0.62, h: 0.95 }, license: STUDIO, variants: KITCHEN, tags: ['cabinets', 'counter', 'sink', 'hob', 'apartment'] },
+  { id: 'kitchen-wall-units', name: 'Wall cabinets, 2.4 m', category: 'kitchen', kind: 'procedural', mount: 'wall', wallHeight: 1.45, footprint: { w: 2.4, d: 0.35, h: 0.72 }, license: STUDIO, variants: KITCHEN, tags: ['cabinets', 'upper'] },
+  { id: 'kitchen-tall-fridge', name: 'Tall fridge-freezer housing', category: 'kitchen', kind: 'procedural', mount: 'wall', wallHeight: 0, footprint: { w: 0.6, d: 0.62, h: 2.2 }, license: STUDIO, variants: KITCHEN, tags: ['refrigerator', 'integrated', 'appliance'] },
+  { id: 'fridge-steel', name: 'Stainless fridge-freezer', category: 'kitchen', kind: 'procedural', footprint: { w: 0.7, d: 0.7, h: 1.85 }, license: STUDIO, tags: ['refrigerator', 'appliance'] },
+  { id: 'cooker-hood', name: 'Chimney cooker hood', category: 'kitchen', kind: 'procedural', mount: 'wall', wallHeight: 1.55, footprint: { w: 0.6, d: 0.5, h: 1.1 }, license: STUDIO, tags: ['extractor', 'appliance'] },
+  { id: 'kitchen-island', surface: 0.9, name: 'Kitchen island with seating overhang', category: 'kitchen', kind: 'procedural', footprint: { w: 1.8, d: 0.9, h: 0.92 }, license: STUDIO, variants: KITCHEN, tags: ['breakfast bar', 'counter'] },
 
   // Bathroom
-  { id: 'bath', name: 'Freestanding bath', category: 'bathroom', kind: 'procedural', footprint: { w: 1.7, d: 0.78, h: 0.6 }, license: STUDIO },
-  { id: 'vanity', surface: 0.86, name: 'Vanity with basin', category: 'bathroom', kind: 'procedural', footprint: { w: 0.9, d: 0.5, h: 0.86 }, license: STUDIO },
-  { id: 'wc', name: 'Wall-hung WC', category: 'bathroom', kind: 'procedural', footprint: { w: 0.38, d: 0.55, h: 0.8 }, license: STUDIO },
+  { id: 'bath', name: 'Freestanding bath', category: 'bathroom', kind: 'procedural', footprint: { w: 1.7, d: 0.78, h: 0.6 }, license: STUDIO, tags: ['bathtub'] },
+  { id: 'shower', name: 'Walk-in shower, 1.2 × 0.9 m', category: 'bathroom', kind: 'procedural', mount: 'wall', wallHeight: 0, footprint: { w: 1.2, d: 0.9, h: 2.1 }, license: STUDIO, walkable: true, tags: ['shower enclosure', 'glass screen'] },
+  { id: 'vanity', surface: 0.86, name: 'Wall-hung vanity with vessel basin', category: 'bathroom', kind: 'procedural', mount: 'wall', wallHeight: 0, footprint: { w: 0.9, d: 0.5, h: 0.86 }, license: STUDIO, variants: VANITY, tags: ['basin', 'sink'] },
+  { id: 'mirror-rect', name: 'Rectangular bathroom mirror', category: 'bathroom', kind: 'procedural', mount: 'wall', wallHeight: 1.05, footprint: { w: 0.7, d: 0.03, h: 0.9 }, license: STUDIO, tags: ['mirror', 'vanity'] },
+  { id: 'wc', name: 'Wall-hung WC', category: 'bathroom', kind: 'procedural', mount: 'wall', wallHeight: 0, footprint: { w: 0.38, d: 0.55, h: 0.8 }, license: STUDIO, tags: ['toilet'] },
 
   // Decor
   { id: 'plant-large', name: 'Large potted plant', category: 'plants', kind: 'gltf', url: m('potted_plant_02'), footprint: { w: 0.7, d: 0.66, h: 0.84 }, license: PH('Rico Cilliers', 'potted_plant_02'), tris: 69000 },

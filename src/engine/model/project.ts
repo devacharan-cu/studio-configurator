@@ -66,6 +66,7 @@ const ProjectV1 = z
         .strict(),
     ),
     items: rec(z.object({ id, level: id, asset: text(60), x: num, y: num, rotation: num, variant: text(40).optional(), z: z.number().finite().gte(0).lte(4).optional() }).strict()),
+    facade: text(40).optional(),
     meta: z.object({ createdAt: text(40), updatedAt: text(40), template: text(40).optional() }).strict(),
   })
   .strict()
