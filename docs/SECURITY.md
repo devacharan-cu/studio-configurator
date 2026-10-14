@@ -1,5 +1,21 @@
 # Security review
 
+## Phase 3 — M2 (2026-10-15)
+
+| Check | Result |
+|---|---|
+| `npm audit` | 0 vulnerabilities (no new dependencies) |
+| Semgrep (5 rulesets) over `src`, `tests`, `scripts` | 0 findings, 88 files |
+| Gitleaks over `src`, `scripts`, `public`, `docs` | no leaks |
+
+**New surfaces:**
+- **58 new GLB files**, self-hosted and loaded only from our origin. All are CC0, and the licence was
+  verified at source.
+- **Asset optimisation** ran outside the project's dependency tree (as in Phase 1).
+- **`Item.z`** is accepted from project files only as a finite number in 0–4 m, and it is optional.
+- **The Credits link** opens third-party source pages with `rel="noopener noreferrer"`. The URLs come
+  from the bundled catalogue, never from project data.
+
 ## Phase 3 — M1 (2026-10-14)
 
 | Check | Result |

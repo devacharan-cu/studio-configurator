@@ -24,6 +24,19 @@ function GltfAsset({ asset }: { asset: AssetDef }) {
       if (m.isMesh) {
         m.castShadow = true
         m.receiveShadow = true
+        // Glass with no factors set defaults to glTF metalness 1 (a dark metal sheet over the artwork):
+        // make it a thin, clear, non-metallic pane that doesn't cast shadows.
+        const mat = m.material as THREE.MeshStandardMaterial
+        if (mat?.name?.toLowerCase().includes('glass')) {
+          const g = mat.clone()
+          g.metalness = 0
+          g.roughness = 0.05
+          g.transparent = true
+          g.opacity = 0.12
+          g.depthWrite = false
+          m.material = g
+          m.castShadow = false
+        }
       }
     })
     root.rotation.y = asset.yaw ?? 0
@@ -291,13 +304,16 @@ function Placeholder({ a, failed }: { a: AssetDef; failed?: boolean }) {
   )
 }
 
-const ItemObject = memo(function ItemObject({ item, elevation, selected, handlers }: { item: Item; elevation: number; selected: boolean; handlers: PickHandlers }) {
+const ItemObject = memo(function ItemObject({ item, elevation, ceiling, selected, handlers }: { item: Item; elevation: number; ceiling: number; selected: boolean; handlers: PickHandlers }) {
   const a = getAsset(item.asset)
   if (!a) return null
   const Proc = PROCEDURAL[a.id]
+  // base height: hung from the ceiling, on a wall, on a table, or on the floor
+  const base = a.mount === 'ceiling' ? ceiling - a.footprint.h : (item.z ?? 0)
+  const grounded = base === 0
   return (
     <group
-      position={[item.x, elevation, item.y]}
+      position={[item.x, elevation + base, item.y]}
       rotation-y={item.rotation}
       name={`item:${item.id}`}
       onPointerDown={(e: ThreeEvent<PointerEvent>) => handlers.onPick({ kind: 'item', id: item.id }, e)}
@@ -311,10 +327,12 @@ const ItemObject = memo(function ItemObject({ item, elevation, selected, handler
         <Suspense fallback={<Placeholder a={a} />}>{Proc ? <Proc a={a} variant={item.variant} /> : <GltfAsset asset={a} />}</Suspense>
       </AssetBoundary>
       {/* soft contact shadow */}
-      <mesh rotation-x={-Math.PI / 2} position-y={0.02} raycast={() => null} renderOrder={1}>
-        <planeGeometry args={[a.footprint.w * 1.25, a.footprint.d * 1.25]} />
-        <meshBasicMaterial map={contactTexture()} color="#1c140d" transparent opacity={a.walkable ? 0 : 0.38} depthWrite={false} toneMapped={false} />
-      </mesh>
+      {grounded && (
+        <mesh rotation-x={-Math.PI / 2} position-y={0.02} raycast={() => null} renderOrder={1}>
+          <planeGeometry args={[a.footprint.w * 1.25, a.footprint.d * 1.25]} />
+          <meshBasicMaterial map={contactTexture()} color="#1c140d" transparent opacity={a.walkable ? 0 : 0.38} depthWrite={false} toneMapped={false} />
+        </mesh>
+      )}
       {selected && (
         <mesh position-y={a.footprint.h / 2} raycast={() => null}>
           <boxGeometry args={[a.footprint.w + 0.04, a.footprint.h + 0.04, a.footprint.d + 0.04]} />
@@ -351,7 +369,7 @@ export function Items({ project, level, handlers }: { project: Project; level: s
       {Object.values(project.items)
         .filter((i) => i.level === level)
         .map((i) => (
-          <ItemObject key={i.id} item={i} elevation={lv.elevation} selected={selection?.kind === 'item' && selection.id === i.id} handlers={handlers} />
+          <ItemObject key={i.id} item={i} elevation={lv.elevation} ceiling={lv.height} selected={selection?.kind === 'item' && selection.id === i.id} handlers={handlers} />
         ))}
     </group>
   )

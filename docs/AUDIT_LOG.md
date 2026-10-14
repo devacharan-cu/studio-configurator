@@ -463,3 +463,58 @@ and an honest commercial-readiness section with a validation plan (no customers 
 - The plan view doesn't yet draw open-air rooms differently from indoor rooms.
 
 **Commit:** `086dcf9`, pushed to `origin/feature/house-library-and-assets` (fast-forward, no force), author and committer `devacharan-cu <devacharan@gmail.com>`, no co-author trailer.
+
+## P3-M2 — Asset pipeline and furniture library
+
+**What changed and why:**
+- **The library grew from 26 to 82 entries.** There are 72 distinct third-party models (55 newly
+  sourced from Poly Haven, 3 already bundled for the Garden Room and now in the editor, and the 14
+  from before) plus 10 parametric pieces.
+- **Coverage:** seating, tables and nightstands, storage, a bed, a cooker, lighting (desk lamp,
+  pendants, chandelier, ceiling fan, wall light, diya lantern), decor (mirror, framed art, vases,
+  cushions, baskets, clock), indoor plants, and outdoor and garden items.
+- **Pipeline** (docs/ASSETS.md):
+  - API download with a unique user-agent, per Poly Haven's ToS;
+  - multi-variant packs split;
+  - glTF-Transform (meshopt, WebP 1024) run outside the project dependencies;
+  - bounds, triangles and textures measured from the optimised files;
+  - thumbnails from the real renderer;
+  - contact-sheet review and in-room inspection.
+- **Placement** (D20): wall items snap to walls, ceiling items hang, and small items stand on tables,
+  counters and sofas (which carry them when moved). Collisions ignore anything not on the floor.
+- **Asset register:**
+  - a generated `docs/asset-manifest.json` (id, name, category, file, licence, attribution and
+    whether it is required, source, footprint, mount, triangles, texture MP, kB, thumbnail);
+  - a human-readable table in `docs/ASSETS.md`;
+  - an in-product **Credits** section on every item showing the author, licence and source.
+- **The capture script fails on load errors**, so regenerating thumbnails is also a load test of
+  every model in the real renderer.
+
+**Defects found and fixed:**
+
+| # | Defect | Cause | Fix |
+|---|---|---|---|
+| 1 | Plants measured 2.5–6.9 m wide | Poly Haven packs 4–6 variants per file, and the optimiser joined them | Extract one variant (root node), re-centre, prune |
+| 2 | Framed print and photo frame looked black | Glass material without factors → glTF default metalness 1 | Materials named *glass* load as clear, thin, non-metallic panes |
+| 3 | Ceiling fittings' thumbnails tiny and off-frame | Studio hung them from a 2.7 m ceiling | Studio ceiling = the fitting's height |
+| 4 | Vase and cushions fell to the floor on old tables and the sofa | Earlier catalogue entries had no usable top | Added `surface` to 13 entries |
+| 5 | Downloads failed on long texture paths | Windows MAX_PATH with deep scratch paths | Extended-length paths in the fetch script |
+| 6 | Two frames got the wrong 180° yaw while investigating #2 | I misread the dark glass as the back | Reverted after the material fix showed the art |
+| 7 | New E2E ran against a stale build again (missing `z` on the test type) | `npm run build` aborts on type errors | Gate now runs browser tests only after a successful build |
+| 8 | One gate run stalled for 2 h, with one 3D door-placement test failing inside it | Abnormal run (likely the machine slept mid-run; a new worker spawned after 2 h) | Stopped and re-ran the full suite: 49 passed. The failure didn't reproduce, so it's recorded as a possible flake to watch |
+
+**Excluded models:** the CRT TV, the 2.27 m chair, an 18 cm stool, a spread-out tea set, and
+FBX-only books (reasons in ASSETS.md).
+
+**Commands & results:** see TESTING "Phase 3 — M2".
+- unit 169/169;
+- E2E **49 passed, 2 skipped** (device-specific), 0 failed, 7.8 min;
+- 82/82 assets load;
+- `npm audit` 0, Semgrep 0 findings, 88 files, Gitleaks 0.
+
+**Known limitations:**
+- **Third-party furniture style is mostly vintage, rustic or traditional** (photo-scanned, real-scale).
+  No redistributable contemporary sofas, beds, kitchens or sanitaryware were found. The parametric
+  pieces fill that gap and are rebuilt in P3-M3.
+- **Mirrors reflect the outdoor sky.**
+- **The heaviest model has 154k triangles** (a leafy plant).

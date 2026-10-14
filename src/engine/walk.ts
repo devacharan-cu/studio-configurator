@@ -48,7 +48,11 @@ export function buildColliders(p: Project, level: Id, minItemHeight = 0.25): Col
     if (cursor < length) capsules.push({ a: add(a, scale(dir, cursor)), b: add(a, scale(dir, length)), r: w.thickness / 2, wall: w.id })
   }
   const boxes: Box[] = Object.values(p.items)
-    .filter((it) => it.level === level && !getAsset(it.asset)?.walkable && (getAsset(it.asset)?.footprint.h ?? 0) > minItemHeight)
+    // floor-standing only: wall and ceiling items and things on tables are not in the way
+    .filter((it) => {
+      const a = getAsset(it.asset)
+      return it.level === level && !!a && !a.walkable && !a.mount && !(it.z && it.z > 0.25) && a.footprint.h > minItemHeight
+    })
     .map((it) => ({ corners: itemCorners(it), item: it.id }))
   return { capsules, boxes }
 }

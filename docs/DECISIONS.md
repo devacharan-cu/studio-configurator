@@ -239,3 +239,28 @@ Balconies, terraces and courtyards are rooms with an outdoor type. They:
   walkthrough.
 
 This keeps courtyards and balconies as editable model data, with no special-case geometry.
+
+## D20 — Where an item sits is decided by the engine, from the asset's mounting
+
+Real homes have mirrors and art on walls, pendants and fans on ceilings, and vases and lamps on tables.
+The catalogue describes this with three fields:
+- `mount: 'wall' | 'ceiling'`, plus `wallHeight` for wall items;
+- `surface`: the height of a usable top;
+- `onSurfaces`: small items that stand on whatever top is under them.
+
+`placeItem` (pure, in `engine/commands/placement.ts`) resolves the actual position on every
+add/move/rotate/duplicate. One rule therefore serves the 2D plan, 3D picking, templates and the
+walkthrough:
+- **Wall items** snap flat against the nearest inner wall face long enough to hold them, face into the
+  room, and get `z` set to the mounting height. Rotating them is ignored (the wall decides), and they
+  re-snap when walls move.
+- **Items on surfaces** take the highest top under their centre (stacking works), or the floor.
+  Moving a table carries what stands on it.
+- **Ceiling items** hang from the level's ceiling; the renderer resolves this from the level height,
+  so changing the storey height keeps them on the ceiling.
+- **Walkthrough collisions ignore** wall and ceiling items and anything raised above 25 cm.
+
+`Item.z` is optional and bounded (0–4 m) in the parser, so older projects load unchanged.
+
+**Rejected:** free 3D placement with gravity or physics. It is heavier, harder to make predictable,
+and not needed for furnishing a home.

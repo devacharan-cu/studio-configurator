@@ -16,6 +16,7 @@ import {
 } from '../model/query'
 import { LIMITS, TOL, type Id, type Item, type Project, type RoomType } from '../model/types'
 import { Draft, fail, finish, newId, type CommandResult } from './draft'
+import { placeItem } from './placement'
 
 export const DEFAULT_THICKNESS = 0.15
 export const DEFAULT_FINISHES = { floorFinish: 'oak-herringbone', wallFinish: 'chalk-white' }
@@ -151,7 +152,8 @@ function keepItemsInRooms(before: Project, d: Draft) {
       }
       if (!moved) break
     }
-    if (dist(pos, it) > 1e-6) d.setItem({ ...it, x: pos.x, y: pos.y })
+    if (asset.mount === 'wall') d.setItem(placeItem(d.p, { ...it, x: pos.x, y: pos.y }))
+    else if (dist(pos, it) > 1e-6) d.setItem({ ...it, x: pos.x, y: pos.y })
     const still = itemCorners({ ...it, ...pos }).some((c) => !pointInPolygon(c, inner))
     if (still && !asset.walkable) d.warnings.push(`${asset.name} no longer fits in ${room.name}`)
   }

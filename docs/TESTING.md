@@ -1,5 +1,44 @@
 # Testing record
 
+## Phase 3 — M2 asset library (2026-10-15)
+
+| Command | Result |
+|---|---|
+| `npx tsc -b` / `npx oxlint` / build | pass / 0 / pass; no dev handles or studio in `dist/` |
+| `npx vitest run` | 169/169 |
+| `npx playwright test` | **49 passed, 2 skipped** (device-specific), 0 failed, 7.8 min |
+| `node scripts/capture-thumbnails.mjs assets` (dev server) | **82 assets rendered by the real renderer, 0 load errors** (the capture fails on any console or page error, so it is a load test of the whole library) |
+
+**New tests:**
+- **Unit, every catalogue entry** (82 × the completeness test): real GLB, licence, source,
+  plausible size, thumbnail.
+- **Unit, placement:**
+  - a mirror snaps flat to the nearest wall, facing in, at its mounting height;
+  - a vase dropped on a table stands on its top, travels with the table, and goes back to the floor
+    elsewhere;
+  - wall, ceiling and tabletop items are not walkthrough obstacles;
+  - the library holds ≥ 60 distinct third-party models with licence records.
+- **E2E, through the library UI:**
+  - wall art placed near a wall hangs at 1.25 m against its face;
+  - a vase placed on the coffee table stands at 0.39 m;
+  - the Credits section shows the author and licence.
+- **E2E, production build:** every model in `docs/asset-manifest.json` is served as a binary glTF.
+
+**Visual inspection:**
+- every thumbnail on a contact sheet (`docs/screenshots/editor/p3m2-catalogue-sheet.jpg`);
+- a showcase built with the real commands (art, vase on the table, pendant, ceiling fan, wall mirror,
+  cooker, bar stools, armchair, cushions on the sofa), walked and flown through
+  (`p3m2-art-and-pendant.jpg`, `p3m2-ceiling-fan.jpg`, `p3m2-wall-mirror.jpg`,
+  `p3m2-cooker-stools.jpg`).
+
+**Not verified:**
+- **Performance with every model in one scene.** Templates in M4/M5 will exercise realistic room
+  loads, and frame times are re-measured there.
+- **Memory.** Texture megapixels per model are recorded in the manifest (3.1–7.3 MP each), but GPU
+  memory wasn't measured.
+
+---
+
 ## Phase 3 — M1 template and asset architecture (2026-10-14)
 
 | Command | Result |

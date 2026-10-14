@@ -44,8 +44,10 @@ export default function ThumbStudio() {
   const params = new URLSearchParams(window.location.search)
   const a = getAsset(params.get('asset') ?? '')
   if (!a) return <p>Unknown asset</p>
-  const base = emptyProject('studio')
-  const level = Object.keys(base.levels)[0]
+  const empty = emptyProject('studio')
+  const level = Object.keys(empty.levels)[0]
+  // ceiling fittings hang from the ceiling: make the "ceiling" their own height so they sit in frame
+  const base = a.mount === 'ceiling' ? { ...empty, levels: { [level]: { ...empty.levels[level], height: a.footprint.h } } } : empty
   const r = addItem(base, { asset: a.id, level, x: 0, y: 0, rotation: 0 })
   if (!r.ok) return <p>{r.error.message}</p>
   const project = r.project

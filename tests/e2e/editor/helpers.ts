@@ -8,7 +8,7 @@ export interface SavedProject {
   walls: Record<string, { id: string; a: string; b: string; thickness: number }>
   rooms: Record<string, { id: string; name: string; boundary: string[]; floorFinish: string }>
   openings: Record<string, { id: string; wall: string; kind: string; offset: number; width: number }>
-  items: Record<string, { id: string; asset: string; x: number; y: number; rotation: number; variant?: string }>
+  items: Record<string, { id: string; asset: string; x: number; y: number; rotation: number; variant?: string; z?: number }>
 }
 
 export const STORAGE_KEY = 'roomset.editor.v1.project'

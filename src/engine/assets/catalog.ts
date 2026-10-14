@@ -1,4 +1,5 @@
 import type { RoomType } from '../model/types'
+import { LIBRARY_ASSETS } from './library'
 
 /**
  * Asset library metadata. Pure data — renderers decide how to draw each asset.
@@ -30,6 +31,14 @@ export interface AssetDef {
   scale?: number
   /** Can a person walk over it in the walkthrough (rugs)? */
   walkable?: boolean
+  /** Mounted on a wall (snaps to the nearest wall face) or hung from the ceiling; floor by default. */
+  mount?: 'wall' | 'ceiling'
+  /** Wall-mounted: height of the item's bottom above the floor, metres. */
+  wallHeight?: number
+  /** Height of a usable top that small items can stand on (tables, consoles, counters). */
+  surface?: number
+  /** Small items that stand on a surface under them (vases, lamps, clocks) when there is one. */
+  onSurfaces?: boolean
   license: AssetLicense
   /** Approximate triangle count, for budgeting. */
   tris?: number
@@ -72,9 +81,10 @@ const m = (file: string) => `/assets/models/${file}.glb`
 
 export const ASSETS: AssetDef[] = [
   // Seating
-  { id: 'sofa-arlo', name: 'Arlo three-seater sofa', category: 'seating', kind: 'procedural', footprint: { w: 2.3, d: 0.98, h: 0.78 }, license: STUDIO, variants: FABRICS, tags: ['couch', 'linen'] },
+  { id: 'sofa-arlo', surface: 0.44, name: 'Arlo three-seater sofa', category: 'seating', kind: 'procedural', footprint: { w: 2.3, d: 0.98, h: 0.78 }, license: STUDIO, variants: FABRICS, tags: ['couch', 'linen'] },
   {
     id: 'sofa-curve-velvet',
+    surface: 0.45,
     name: 'Curve velvet sofa',
     category: 'seating',
     kind: 'gltf',
@@ -93,29 +103,29 @@ export const ASSETS: AssetDef[] = [
   { id: 'chair-dining', name: 'Upholstered dining chair', category: 'seating', kind: 'gltf', url: m('dining_chair_02'), footprint: { w: 0.43, d: 0.58, h: 0.97 }, license: PH('James Ray Cock', 'dining_chair_02'), tris: 22000 },
 
   // Tables
-  { id: 'table-coffee-slab', name: 'Slab coffee table', category: 'tables', kind: 'gltf', url: m('modern_coffee_table_01'), yaw: Math.PI / 2, footprint: { w: 1.2, d: 0.6, h: 0.39 }, license: PH('Amin', 'modern_coffee_table_01'), tris: 3800 },
-  { id: 'table-coffee-round', name: 'Ribbon round coffee table', category: 'tables', kind: 'gltf', url: m('coffee_table_round_01'), footprint: { w: 1.3, d: 1.3, h: 0.49 }, license: PH('Ulan Cabanilla', 'coffee_table_round_01'), tris: 3700 },
-  { id: 'table-dining-round', name: 'Round pedestal dining table', category: 'tables', kind: 'gltf', url: m('round_wooden_table_01'), scale: 0.76, footprint: { w: 1.06, d: 1.06, h: 0.76 }, license: PH('Ulan Cabanilla', 'round_wooden_table_01'), tris: 8600 },
-  { id: 'table-side', name: 'Oak side table', category: 'tables', kind: 'gltf', url: m('side_table_01'), footprint: { w: 0.55, d: 0.45, h: 0.55 }, license: PH('James Ray Cock', 'side_table_01'), tris: 2500 },
-  { id: 'bench-wood', name: 'Low wooden bench', category: 'tables', kind: 'gltf', url: m('small_wooden_table_01'), footprint: { w: 0.92, d: 0.44, h: 0.53 }, license: PH('Ulan Cabanilla', 'small_wooden_table_01'), tris: 3400 },
-  { id: 'desk', name: 'Writing desk', category: 'tables', kind: 'procedural', footprint: { w: 1.4, d: 0.7, h: 0.75 }, license: STUDIO },
+  { id: 'table-coffee-slab', surface: 0.39, name: 'Slab coffee table', category: 'tables', kind: 'gltf', url: m('modern_coffee_table_01'), yaw: Math.PI / 2, footprint: { w: 1.2, d: 0.6, h: 0.39 }, license: PH('Amin', 'modern_coffee_table_01'), tris: 3800 },
+  { id: 'table-coffee-round', surface: 0.49, name: 'Ribbon round coffee table', category: 'tables', kind: 'gltf', url: m('coffee_table_round_01'), footprint: { w: 1.3, d: 1.3, h: 0.49 }, license: PH('Ulan Cabanilla', 'coffee_table_round_01'), tris: 3700 },
+  { id: 'table-dining-round', surface: 0.76, name: 'Round pedestal dining table', category: 'tables', kind: 'gltf', url: m('round_wooden_table_01'), scale: 0.76, footprint: { w: 1.06, d: 1.06, h: 0.76 }, license: PH('Ulan Cabanilla', 'round_wooden_table_01'), tris: 8600 },
+  { id: 'table-side', surface: 0.55, name: 'Oak side table', category: 'tables', kind: 'gltf', url: m('side_table_01'), footprint: { w: 0.55, d: 0.45, h: 0.55 }, license: PH('James Ray Cock', 'side_table_01'), tris: 2500 },
+  { id: 'bench-wood', surface: 0.53, name: 'Low wooden bench', category: 'tables', kind: 'gltf', url: m('small_wooden_table_01'), footprint: { w: 0.92, d: 0.44, h: 0.53 }, license: PH('Ulan Cabanilla', 'small_wooden_table_01'), tris: 3400 },
+  { id: 'desk', surface: 0.75, name: 'Writing desk', category: 'tables', kind: 'procedural', footprint: { w: 1.4, d: 0.7, h: 0.75 }, license: STUDIO },
 
   // Storage
-  { id: 'cabinet-media', name: 'Slatted media console', category: 'storage', kind: 'gltf', url: m('modern_wooden_cabinet'), footprint: { w: 2.44, d: 0.52, h: 0.68 }, license: PH('Patrik Pangerl', 'modern_wooden_cabinet'), tris: 13300 },
+  { id: 'cabinet-media', surface: 0.68, name: 'Slatted media console', category: 'storage', kind: 'gltf', url: m('modern_wooden_cabinet'), footprint: { w: 2.44, d: 0.52, h: 0.68 }, license: PH('Patrik Pangerl', 'modern_wooden_cabinet'), tris: 13300 },
   { id: 'shelves-cube', name: 'Cube display shelving', category: 'storage', kind: 'gltf', url: m('wooden_display_shelves_01'), yaw: Math.PI / 2, footprint: { w: 1.08, d: 0.37, h: 1.56 }, license: PH('James Ray Cock', 'wooden_display_shelves_01'), tris: 3200 },
   { id: 'cabinet-drawers', name: 'Steel-frame drawer unit', category: 'storage', kind: 'gltf', url: m('drawer_cabinet'), footprint: { w: 1.14, d: 0.49, h: 1.88 }, license: PH('Ulan Cabanilla', 'drawer_cabinet'), tris: 26000 },
   { id: 'wardrobe', name: 'Two-door wardrobe', category: 'storage', kind: 'procedural', footprint: { w: 1.8, d: 0.62, h: 2.2 }, license: STUDIO },
 
   // Beds
-  { id: 'bed-double', name: 'Upholstered double bed', category: 'beds', kind: 'procedural', footprint: { w: 1.7, d: 2.15, h: 1.05 }, license: STUDIO, variants: BOUCLE, tags: ['bedroom'] },
+  { id: 'bed-double', surface: 0.62, name: 'Upholstered double bed', category: 'beds', kind: 'procedural', footprint: { w: 1.7, d: 2.15, h: 1.05 }, license: STUDIO, variants: BOUCLE, tags: ['bedroom'] },
 
   // Kitchen
-  { id: 'kitchen-run', name: 'Kitchen run, 3 m', category: 'kitchen', kind: 'procedural', footprint: { w: 3.0, d: 0.62, h: 0.95 }, license: STUDIO },
-  { id: 'kitchen-island', name: 'Kitchen island', category: 'kitchen', kind: 'procedural', footprint: { w: 1.8, d: 0.9, h: 0.92 }, license: STUDIO },
+  { id: 'kitchen-run', surface: 0.92, name: 'Kitchen run, 3 m', category: 'kitchen', kind: 'procedural', footprint: { w: 3.0, d: 0.62, h: 0.95 }, license: STUDIO },
+  { id: 'kitchen-island', surface: 0.92, name: 'Kitchen island', category: 'kitchen', kind: 'procedural', footprint: { w: 1.8, d: 0.9, h: 0.92 }, license: STUDIO },
 
   // Bathroom
   { id: 'bath', name: 'Freestanding bath', category: 'bathroom', kind: 'procedural', footprint: { w: 1.7, d: 0.78, h: 0.6 }, license: STUDIO },
-  { id: 'vanity', name: 'Vanity with basin', category: 'bathroom', kind: 'procedural', footprint: { w: 0.9, d: 0.5, h: 0.86 }, license: STUDIO },
+  { id: 'vanity', surface: 0.86, name: 'Vanity with basin', category: 'bathroom', kind: 'procedural', footprint: { w: 0.9, d: 0.5, h: 0.86 }, license: STUDIO },
   { id: 'wc', name: 'Wall-hung WC', category: 'bathroom', kind: 'procedural', footprint: { w: 0.38, d: 0.55, h: 0.8 }, license: STUDIO },
 
   // Decor
@@ -123,6 +133,8 @@ export const ASSETS: AssetDef[] = [
   { id: 'plant-small', name: 'Potted succulent', category: 'plants', kind: 'gltf', url: m('potted_plant_04'), footprint: { w: 0.17, d: 0.18, h: 0.27 }, walkable: false, license: PH('James Ray Cock', 'potted_plant_04'), tris: 6100 },
   { id: 'rug-wool', name: 'Wool rug, 2.4 × 1.7 m', category: 'rugs', kind: 'procedural', footprint: { w: 2.4, d: 1.7, h: 0.016 }, walkable: true, license: STUDIO, variants: BOUCLE },
 ]
+
+ASSETS.push(...LIBRARY_ASSETS)
 
 const BY_ID = new Map(ASSETS.map((a) => [a.id, a]))
 export const getAsset = (id: string) => BY_ID.get(id)

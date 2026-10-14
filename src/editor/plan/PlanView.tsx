@@ -6,7 +6,7 @@ import { closestOnSegment, dot, sub, type V2 } from '../../engine/geometry/vec'
 import { openingCenter, wallOutline, wallSides } from '../../engine/geometry/walls'
 import { fmtArea, fmtLen, roomMetrics } from '../../engine/metrics'
 import { nodePos, roomPolygon, wallFrame } from '../../engine/model/query'
-import type { Id, Opening, Project } from '../../engine/model/types'
+import type { Id, Item, Opening, Project } from '../../engine/model/types'
 import { currentProject, useEditor, useProject, type Selection } from '../store'
 import { GRID, snapLength, snapPoint, type SnapResult } from './snap'
 
@@ -92,7 +92,13 @@ export function PlanView() {
 
   const walls = useMemo(() => Object.values(project.walls).filter((w) => w.level === level), [project, level])
   const rooms = useMemo(() => Object.values(project.rooms).filter((r) => r.level === level), [project, level])
-  const items = useMemo(() => Object.values(project.items).filter((i) => i.level === level), [project, level])
+  // drawn bottom-up so things on tables stay clickable above them; ceiling fittings last
+  const items = useMemo(() => {
+    const height = (i: Item) => (getAsset(i.asset)?.mount === 'ceiling' ? 10 : (i.z ?? 0))
+    return Object.values(project.items)
+      .filter((i) => i.level === level)
+      .sort((a, b) => height(a) - height(b))
+  }, [project, level])
   const outlines = useMemo(() => new Map(walls.map((w) => [w.id, wallOutline(project, w)])), [walls, project])
   const sides = useMemo(() => wallSides(project), [project])
 
@@ -352,10 +358,10 @@ export function PlanView() {
             <g key={it.id} data-item={it.asset}>
               <polygon
                 points={corners.map(pt).join(' ')}
-                fill={a?.walkable ? 'rgba(140,90,60,0.08)' : sel ? 'rgba(140,90,60,0.28)' : 'rgba(80,70,60,0.14)'}
+                fill={a?.walkable || a?.mount === 'ceiling' ? 'rgba(140,90,60,0.06)' : sel ? 'rgba(140,90,60,0.28)' : 'rgba(80,70,60,0.14)'}
                 stroke={sel ? '#8c5a3c' : '#9a8f82'}
                 strokeWidth={px(sel ? 2 : 1)}
-                strokeDasharray={a?.walkable ? `${px(4)} ${px(3)}` : undefined}
+                strokeDasharray={a?.walkable || a?.mount === 'ceiling' ? `${px(4)} ${px(3)}` : undefined}
                 className="cursor-move"
                 onPointerDown={(e) => onDown(e, { kind: 'item', id: it.id })}
                 onPointerEnter={() => setHover({ kind: 'item', id: it.id })}

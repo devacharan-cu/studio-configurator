@@ -103,6 +103,8 @@ export interface Item {
   rotation: number
   /** Optional finish/variant id understood by the asset (e.g. a fabric). */
   variant?: string
+  /** Height of the item's base above the floor: on a table/counter, or a wall-mounted item's bottom. */
+  z?: number
 }
 
 export interface Project {

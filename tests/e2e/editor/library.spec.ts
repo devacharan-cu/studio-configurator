@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import { clickPlan, openFresh, saved, watchProblems } from './helpers'
 
@@ -92,4 +93,34 @@ test.describe('house templates and furniture library', () => {
     await expect(lib.locator('[data-asset="bed-double"]')).toBeVisible()
     await expect(lib.locator('[data-asset="kitchen-run"]')).toHaveCount(0)
   })
+
+  test('wall art hangs on the wall, a vase stands on the coffee table, and each item shows its credits', async ({ page }) => {
+    await page.getByRole('button', { name: /Furnish/ }).click()
+    const lib = page.getByRole('complementary', { name: 'Furniture library' })
+    await lib.getByRole('textbox', { name: 'Search furniture' }).fill('photograph')
+    await lib.locator('[data-asset="art-photo-landscape"]').click()
+    await clickPlan(page, 3.0, 0.5) // near the living room's north wall
+    await expect.poll(async () => Object.values((await saved(page)).items).find((i) => i.asset === 'art-photo-landscape')?.z).toBe(1.25)
+    const art = Object.values((await saved(page)).items).find((i) => i.asset === 'art-photo-landscape')!
+    expect(art.y).toBeLessThan(0.2) // against the wall's inner face (y = 0.125)
+    await expect(page.getByTestId('item-credit')).toContainText('Poly Haven')
+
+    await lib.getByRole('textbox', { name: 'Search furniture' }).fill('white ceramic')
+    await lib.locator('[data-asset="vase-white"]').click()
+    await clickPlan(page, 1.95, 2.75) // on the slab coffee table (0.39 m top)
+    await expect.poll(async () => Object.values((await saved(page)).items).find((i) => i.asset === 'vase-white')?.z).toBeCloseTo(0.39, 2)
+    await expect(page.getByTestId('item-credit')).toContainText('CC0')
+  })
+})
+
+test('every library model is served by the production build as a binary glTF', async ({ request }, info) => {
+  test.skip(info.project.name !== 'desktop', 'once is enough')
+  const manifest = JSON.parse(readFileSync('docs/asset-manifest.json', 'utf-8')) as { assets: { id: string; file: string | null }[] }
+  const files = manifest.assets.map((a) => a.file).filter((f): f is string => !!f)
+  expect(files.length).toBeGreaterThanOrEqual(60)
+  for (const f of files) {
+    const r = await request.get(f)
+    expect(r.status(), f).toBe(200)
+    expect((await r.body()).subarray(0, 4).toString('latin1'), f).toBe('glTF')
+  }
 })

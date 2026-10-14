@@ -237,6 +237,20 @@ function ItemInspector({ p, id }: { p: Project; id: string }) {
           </select>
         </Section>
       )}
+      <Section title="Credits">
+        <p className="text-[11.5px] leading-snug text-ink-soft" data-testid="item-credit">
+          {a.license.attribution}
+          {a.license.spdx !== 'project' && <> · {a.license.spdx === 'CC0-1.0' ? 'CC0 (public domain)' : 'CC BY 4.0'}</>}
+          {a.license.source && (
+            <>
+              {' · '}
+              <a href={a.license.source} target="_blank" rel="noopener noreferrer" className="underline">
+                source
+              </a>
+            </>
+          )}
+        </p>
+      </Section>
       <div className="px-4 py-2">
         <DeleteButton label="Remove item" onClick={() => run(deleteItem(p, { item: id })) && select(null)} />
       </div>

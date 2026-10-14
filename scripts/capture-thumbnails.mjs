@@ -24,7 +24,13 @@ async function assets(browser) {
   const ids = only ? [only] : await list.locator('[data-asset]').evaluateAll((els) => [...new Set(els.map((e) => e.getAttribute('data-asset')))])
   await list.close()
   const page = await browser.newPage({ viewport: { width: 384, height: 384 } })
+  // every capture is also a load test: a model that fails to load is reported and fails the run
+  let errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+  const failed = []
   for (const id of ids) {
+    errors = []
     await page.goto(`${base}/__studio?asset=${encodeURIComponent(id)}`)
     await page.waitForFunction(() => document.body.dataset.ready === '1', null, { timeout: 60000 })
     await page.waitForTimeout(400)
@@ -36,9 +42,15 @@ async function assets(browser) {
       return c.toDataURL('image/webp', 0.86)
     })
     save(`public/assets/catalog/${id}.webp`, url)
-    console.log('asset', id)
+    if (errors.length) failed.push(`${id}: ${errors.join(' | ')}`)
+    console.log('asset', id, errors.length ? 'ERRORS' : '')
   }
   await page.close()
+  console.log(`${ids.length} assets rendered, ${failed.length} with load errors`)
+  if (failed.length) {
+    console.error(failed.join(String.fromCharCode(10)))
+    process.exitCode = 1
+  }
 }
 
 async function templates(browser) {

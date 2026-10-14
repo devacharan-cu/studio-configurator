@@ -3,6 +3,7 @@ import { usableRange } from '../geometry/walls'
 import type { Id, Opening, OpeningKind, Project } from '../model/types'
 import { LIMITS } from '../model/types'
 import { Draft, fail, finish, newId, type CommandResult } from './draft'
+import { itemsOn, placeItem } from './placement'
 import { itemCorners, roomAt } from './structure'
 
 export const OPENING_DEFAULTS: Record<OpeningKind, Pick<Opening, 'width' | 'height' | 'sill'>> = {
@@ -127,7 +128,7 @@ export function addItem(p: Project, args: { asset: string; level: Id; x: number;
   if (!Number.isFinite(args.x) || !Number.isFinite(args.y)) return fail('coord', 'Invalid position')
   const d = new Draft(p)
   const id = newId('i')
-  d.setItem({ id, level: args.level, asset: a.id, x: args.x, y: args.y, rotation: args.rotation ?? 0 })
+  d.setItem(placeItem(p, { id, level: args.level, asset: a.id, x: args.x, y: args.y, rotation: args.rotation ?? 0 }))
   d.created.push(id)
   return finish(d, `Add ${a.name}`)
 }
@@ -137,7 +138,10 @@ export function moveItem(p: Project, args: { item: Id; x: number; y: number }): 
   if (!it) return fail('ref', 'That item no longer exists', args.item)
   if (!Number.isFinite(args.x) || !Number.isFinite(args.y)) return fail('coord', 'Invalid position')
   const d = new Draft(p)
-  d.setItem({ ...it, x: args.x, y: args.y })
+  const moved = placeItem(p, { ...it, x: args.x, y: args.y })
+  // things standing on a table travel with it
+  for (const o of itemsOn(p, it)) d.setItem({ ...o, x: o.x + moved.x - it.x, y: o.y + moved.y - it.y })
+  d.setItem(moved)
   return finish(d, 'Move item')
 }
 
@@ -147,7 +151,8 @@ export function rotateItem(p: Project, args: { item: Id; rotation: number }): Co
   if (!Number.isFinite(args.rotation)) return fail('coord', 'Invalid rotation')
   const TAU = Math.PI * 2
   const d = new Draft(p)
-  d.setItem({ ...it, rotation: ((args.rotation % TAU) + TAU) % TAU })
+  // wall-mounted items keep facing the room: rotation comes from the wall
+  d.setItem(placeItem(p, { ...it, rotation: ((args.rotation % TAU) + TAU) % TAU }))
   return finish(d, 'Rotate item')
 }
 
@@ -173,7 +178,7 @@ export function duplicateItem(p: Project, args: { item: Id; dx?: number; dy?: nu
   const [dx, dy] = tries.find(([tx, ty]) => fits(it.x + tx, it.y + ty)) ?? tries[0]
   const d = new Draft(p)
   const id = newId('i')
-  d.setItem({ ...it, id, x: it.x + dx, y: it.y + dy })
+  d.setItem(placeItem(p, { ...it, id, x: it.x + dx, y: it.y + dy }))
   d.created.push(id)
   return finish(d, `Duplicate ${a?.name ?? 'item'}`)
 }
