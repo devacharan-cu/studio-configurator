@@ -571,3 +571,5 @@ FBX-only books (reasons in ASSETS.md).
 - **Startup** still spends about 1.9 s uploading textures and compiles late-loading models' shaders
   on first use.
 - **Third-party furniture style** is mostly traditional or rustic (P3-M2).
+
+**Commit:** `915793b`, pushed to `origin/feature/house-library-and-assets` (fast-forward, no force), author and committer `devacharan-cu <devacharan@gmail.com>`.
