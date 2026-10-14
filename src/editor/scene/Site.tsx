@@ -6,7 +6,7 @@ import { interiorPoint, pointInPolygon, area } from '../../engine/geometry/polyg
 import { entrances, roofPlan } from '../../engine/geometry/site'
 import type { Face } from '../../engine/geometry/walls'
 import { roomPolygon, roomsOnLevel } from '../../engine/model/query'
-import type { Id, Project } from '../../engine/model/types'
+import { isOutdoor, type Id, type Project } from '../../engine/model/types'
 import { planBounds } from './bounds'
 import { facesToGeometry } from './buildGeometry'
 import { useFinishMaterial } from './materials'
@@ -23,6 +23,8 @@ import { SUN_DIR, useSkyTextures } from './sky'
  * Image-based light itself has no occlusion; it is turned down indoors so rooms aren't lit by the sky
  * through solid walls.
  */
+
+const indoorRooms = (p: Project, level: Id) => roomsOnLevel(p, level).filter((r) => !isOutdoor(r))
 
 const LAWN: FinishDef = { id: 'site-lawn', name: 'Lawn', texture: 'grass_ground', tileSize: 3.2, tint: '#b9dc8a', roughness: 1, normalScale: 0.6, swatch: '#7c8a4c' }
 const PAVING: FinishDef = { id: 'site-paving', name: 'Stone paving', texture: 'rectangular_paving', tileSize: 2.0, tint: '#ece6dc', roughness: 1, normalScale: 0.8, swatch: '#bdb4a6' }
@@ -155,7 +157,7 @@ function Roof({ project, level, top }: { project: Project; level: Id; top: numbe
 function RoomLights({ project, level, ceiling, on }: { project: Project; level: Id; ceiling: number; on: boolean }) {
   const rooms = useMemo(
     () =>
-      roomsOnLevel(project, level).map((r) => {
+      indoorRooms(project, level).map((r) => {
         const poly = roomPolygon(project, r)
         const c = interiorPoint(poly)
         const a = area(poly)
@@ -226,7 +228,7 @@ export function Site({ project, level, firstPerson, quality }: { project: Projec
     target.position.set(cx, 0, cz)
     target.updateMatrixWorld()
   }, [target, cx, cz])
-  const polys = useMemo(() => roomsOnLevel(project, level).map((rm) => roomPolygon(project, rm)), [project, level])
+  const polys = useMemo(() => indoorRooms(project, level).map((rm) => roomPolygon(project, rm)), [project, level])
 
   // Sky light has no occlusion: indoors it is turned down and the fill becomes warm light bounced off
   // floors and walls, instead of blue sky from above and green lawn from below.

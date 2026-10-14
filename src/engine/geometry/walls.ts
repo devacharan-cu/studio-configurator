@@ -1,5 +1,5 @@
 import { nodePos, openingsOnWall, roomPolygon, wallFrame, wallsAtNode } from '../model/query'
-import type { Id, Opening, Project, Wall } from '../model/types'
+import { isOutdoor, type Id, type Opening, type Project, type Wall } from '../model/types'
 import { signedArea } from './polygon'
 import { add, angleOf, dist, dot, lineIntersection, scale, sub, type V2 } from './vec'
 
@@ -192,9 +192,14 @@ export function wallSolid(p: Project, w: Wall, elevation: number, displayHeight 
 }
 
 /** Which room (if any) lies on each side of a wall. */
-export function wallSides(p: Project): Record<Id, { left?: Id; right?: Id }> {
+/**
+ * Which room lies on each side of each wall. With `indoorOnly`, open-air rooms (balcony, terrace,
+ * courtyard) are ignored, so a wall between a living room and a courtyard reads as an exterior wall.
+ */
+export function wallSides(p: Project, indoorOnly = false): Record<Id, { left?: Id; right?: Id }> {
   const out: Record<Id, { left?: Id; right?: Id }> = {}
   for (const r of Object.values(p.rooms)) {
+    if (indoorOnly && isOutdoor(r)) continue
     const ccw = signedArea(roomPolygon(p, r)) > 0
     r.boundary.forEach((id, i) => {
       const next = r.boundary[(i + 1) % r.boundary.length]

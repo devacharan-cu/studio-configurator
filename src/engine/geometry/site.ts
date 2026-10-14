@@ -1,5 +1,5 @@
 import { openingsOnWall, roomPolygon, roomsOnLevel, wallBetween, wallFrame, wallsOnLevel } from '../model/query'
-import type { Id, Project, Room } from '../model/types'
+import { isOutdoor, type Id, type Project, type Room } from '../model/types'
 import { insetPolygon, signedArea } from './polygon'
 import { add, dot, len, norm, perp, scale, sub, type V2 } from './vec'
 import { wallSides } from './walls'
@@ -83,8 +83,10 @@ export interface RoofPlan {
 
 /** Flat roof outline for a level: room slabs plus an overhanging strip along every exterior wall. */
 export function roofPlan(p: Project, level: Id, overhang = 0.25): RoofPlan {
-  const sides = wallSides(p)
-  const slabs = roomsOnLevel(p, level).map((r) => roomPolygon(p, r))
+  const sides = wallSides(p, true)
+  const slabs = roomsOnLevel(p, level)
+    .filter((r) => !isOutdoor(r))
+    .map((r) => roomPolygon(p, r))
   const strips: RoofStrip[] = []
   for (const w of wallsOnLevel(p, level)) {
     const s = sides[w.id] ?? {}
@@ -113,7 +115,7 @@ export interface Entrance {
  * from the front door and to place the street viewpoint.
  */
 export function entrances(p: Project, level: Id): Entrance[] {
-  const sides = wallSides(p)
+  const sides = wallSides(p, true)
   const out: Entrance[] = []
   for (const w of wallsOnLevel(p, level)) {
     const s = sides[w.id] ?? {}

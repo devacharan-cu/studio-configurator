@@ -200,6 +200,31 @@ There are three camera modes, each a separate controller, rather than one contro
 visitor slides along walls. Eye height 1.6 m above the current level. Room awareness uses the room
 polygons; "go to room" jumps to each room's interior point. Ceilings are shown while walking.
 
+## Templates and the asset catalogue (Phase 3)
+
+```
+src/engine/templates/
+  spec.ts            HouseSpec + buildHouse (replays rooms/openings/furniture through the commands)
+  houses/*.ts        one spec per house
+  index.ts           TEMPLATES registry (kind, style, tags, description), buildTemplate, projectStats
+src/engine/assets/catalog.ts   ASSETS (id, category, kind gltf|procedural, url, footprint, licence,
+                               tags, variants), SUGGESTED_FOR room types, assetThumb()
+src/editor/ui/TemplateGallery.tsx   browse / filter / search / preview (captured 3D + PlanPreview) / create
+src/editor/ui/AssetLibrary.tsx      search, categories, room suggestions, recently used, thumbnails
+src/editor/dev/ThumbStudio.tsx      development-only thumbnail page (not in production builds)
+scripts/capture-thumbnails.mjs      captures public/assets/catalog/*.webp and public/assets/templates/*.webp
+```
+
+- **Template rules:** see D17 for the template rules and the invariant suite every template must pass.
+- **Thumbnails:** see D18.
+- **Open-air rooms:** see D19.
+- **Item commands:**
+  - `duplicateItem` places the copy right, left, below or above the original, choosing the first
+    position that stays inside the same room;
+  - `setItemVariant` validates the finish against the asset's `variants`.
+  - Both are single undo steps, so anything placed, duplicated or refinished saves and reloads with
+    the project.
+
 ## Performance (measured — see TESTING.md)
 
 Engine, compact home (Node): `moveWall` + full validation 0.79 ms; `validateProject` 0.31 ms; all 19

@@ -8,8 +8,8 @@ The plan and backlog are in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md).
 
 | # | Milestone | Status | Commit | Evidence |
 |---|---|---|---|---|
-| P3-M0 | Baseline, audit, research, product roadmap | Done | (this commit) | tsc/lint/unit 70/70/build/audit re-run on `0a89fc6`; E2E 44 passed + 2 skips on identical code (P2-M2 run) |
-| P3-M1 | Template + asset architecture, gallery, asset browser, duplicate, item materials | Planned | | |
+| P3-M0 | Baseline, audit, research, product roadmap | Done, pushed | `ad8db3a` | tsc/lint/unit 70/70/build/audit re-run on `0a89fc6`; E2E 44 passed + 2 skips on identical code (P2-M2 run) |
+| P3-M1 | Template + asset architecture, gallery, asset browser, duplicate, item finishes, outdoor rooms | Done | (this commit) | 107/107 unit; E2E 47 passed + 2 device skips; audit 0, Semgrep 0, Gitleaks 0 |
 | P3-M2 | Asset pipeline, ≥40 real models | Planned | | |
 | P3-M3 | Materials + interior realism | Planned | | |
 | P3-M4 | First batch of house templates | Planned | | |
@@ -17,8 +17,9 @@ The plan and backlog are in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md).
 | P3-M6 | Variants, finish packages, presentation, still export | Planned | | |
 | P3-M7 | End-to-end review | Planned | | |
 
-**Next concrete task:** P3-M1. Add metadata to the template registry, build a house-spec builder,
-validate every template and asset in tests, then build the template gallery.
+**Next concrete task:** P3-M2. Optimise the downloaded Poly Haven candidates with glTF-Transform
+(meshopt, WebP 1024), measure their footprints and orientation, add them to the catalogue with
+licence records, capture thumbnails, and inspect each one in a real room.
 
 ---
 

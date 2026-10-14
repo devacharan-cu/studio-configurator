@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { skirtingRuns } from '../../engine/geometry/site'
 import { openingCenter, wallSides, wallSolid, type Face } from '../../engine/geometry/walls'
 import { openingsOnWall, roomPolygon, wallFrame, wallsAtNode } from '../../engine/model/query'
-import type { Id, Opening, Project, Room, Wall } from '../../engine/model/types'
+import { isOutdoor, type Id, type Opening, type Project, type Room, type Wall } from '../../engine/model/types'
 import { useEditor, type Selection } from '../store'
 import { facesToGeometry, polygonGeometry } from './buildGeometry'
 import type { FinishDef } from '../../engine/assets/finishes'
@@ -279,7 +279,7 @@ function Skirting({ project, level }: { project: Project; level: Id }) {
     const D = 0.014
     const faces: Face[] = []
     const y0 = project.levels[level]?.elevation ?? 0
-    for (const r of Object.values(project.rooms).filter((x) => x.level === level)) {
+    for (const r of Object.values(project.rooms).filter((x) => x.level === level && !isOutdoor(x))) {
       for (const run of skirtingRuns(project, r)) {
         const n = run.inward
         const { a, b } = run
@@ -306,7 +306,8 @@ const extSide = (s?: { left?: Id; right?: Id }): ExtSide => (!s || (!s.left && !
 export function Building({ project, level, cutaway, ceilings, handlers }: { project: Project; level: Id; cutaway: boolean; ceilings: boolean; handlers: PickHandlers }) {
   const selection = useEditor((s) => s.selection)
   const lv = project.levels[level]
-  const sides = useMemo(() => wallSides(project), [project])
+  // open-air rooms (courtyard, balcony) don't count: their walls get the facade finish and exterior sills
+  const sides = useMemo(() => wallSides(project, true), [project])
   if (!lv) return null
   const display = cutaway ? 1.15 : Infinity
   const walls = Object.values(project.walls).filter((w) => w.level === level)
@@ -334,7 +335,7 @@ export function Building({ project, level, cutaway, ceilings, handlers }: { proj
         <Floor key={r.id} project={project} room={r} elevation={lv.elevation} handlers={handlers} selected={selection?.kind === 'room' && selection.id === r.id} />
       ))}
       <Skirting project={project} level={level} />
-      {ceilings && !cutaway && rooms.map((r) => <Ceiling key={`c-${r.id}`} project={project} room={r} y={lv.elevation + lv.height} />)}
+      {ceilings && !cutaway && rooms.filter((r) => !isOutdoor(r)).map((r) => <Ceiling key={`c-${r.id}`} project={project} room={r} y={lv.elevation + lv.height} />)}
       {Object.values(project.openings)
         .filter((o) => project.walls[o.wall]?.level === level)
         .map((o) => (

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { newId } from '../commands/draft'
-import type { Project } from './types'
+import { ROOM_TYPES, type Project } from './types'
 import { validateProject } from './validate'
 
 export function emptyProject(name = 'Untitled project'): Project {
@@ -43,7 +43,7 @@ const ProjectV1 = z
           id,
           level: id,
           name: text(40),
-          type: z.enum(['living', 'dining', 'kitchen', 'bedroom', 'bathroom', 'hall', 'study', 'utility', 'storage', 'other']),
+          type: z.enum(ROOM_TYPES),
           boundary: z.array(id).min(3).max(200),
           floorFinish: text(40),
           wallFinish: text(40),

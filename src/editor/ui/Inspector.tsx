@@ -1,16 +1,15 @@
 import { ASSETS, getAsset } from '../../engine/assets/catalog'
 import { FLOOR_FINISHES, WALL_FINISHES } from '../../engine/assets/finishes'
-import { deleteItem, deleteOpening, moveItem, moveOpening, replaceItem, rotateItem, updateOpening } from '../../engine/commands/elements'
+import { deleteItem, deleteOpening, duplicateItem, moveItem, moveOpening, replaceItem, rotateItem, setItemVariant, updateOpening } from '../../engine/commands/elements'
 import { deleteRoom, moveWall, setRoomSize, updateRoom, updateWall } from '../../engine/commands/structure'
 import { wallSides } from '../../engine/geometry/walls'
 import { fmtArea, fmtLen, roomMetrics } from '../../engine/metrics'
 import { roomPolygon, wallFrame } from '../../engine/model/query'
-import type { Project, RoomType } from '../../engine/model/types'
+import { ROOM_TYPES, type Project, type RoomType } from '../../engine/model/types'
 import { useEditor, useProject } from '../store'
 import { Icon } from './icons'
 import { NumberField } from './NumberField'
 
-const ROOM_TYPES: RoomType[] = ['living', 'dining', 'kitchen', 'bedroom', 'bathroom', 'hall', 'study', 'utility', 'storage', 'other']
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -199,15 +198,34 @@ function ItemInspector({ p, id }: { p: Project; id: string }) {
       <Section title={a.category}>
         <p className="font-display text-[19px] leading-tight">{a.name}</p>
         <p className="text-[11.5px] text-mute">
-          {fmtLen(a.footprint.w)} × {fmtLen(a.footprint.d)} × {fmtLen(a.footprint.h)} · {a.kind === 'procedural' ? 'modelled in code (placeholder quality)' : a.license.spdx}
+          {fmtLen(a.footprint.w)} × {fmtLen(a.footprint.d)} × {fmtLen(a.footprint.h)} · {a.kind === 'procedural' ? 'parametric, modelled for this project' : a.license.spdx}
         </p>
         <NumberField label="X" value={it.x} onCommit={(v) => run(moveItem(p, { item: id, x: v, y: it.y }))} />
         <NumberField label="Y" value={it.y} onCommit={(v) => run(moveItem(p, { item: id, x: it.x, y: v }))} />
         <NumberField label="Rotation" value={(it.rotation * 180) / Math.PI} unit="°" step={15} decimals={0} testId="item-rotation" onCommit={(v) => run(rotateItem(p, { item: id, rotation: (v * Math.PI) / 180 }))} />
-        <button type="button" className="btn-secondary h-8 w-full px-2 text-[12px]" onClick={() => run(rotateItem(p, { item: id, rotation: it.rotation + Math.PI / 2 }))}>
-          <Icon name="rotate" size={15} /> Rotate 90°
-        </button>
+        <div className="grid grid-cols-2 gap-1.5">
+          <button type="button" className="btn-secondary h-8 px-2 text-[12px]" onClick={() => run(rotateItem(p, { item: id, rotation: it.rotation + Math.PI / 2 }))} title="Rotate 90° (Q)">
+            <Icon name="rotate" size={15} /> Rotate 90°
+          </button>
+          <button
+            type="button"
+            className="btn-secondary h-8 px-2 text-[12px]"
+            title="Duplicate (Ctrl+D)"
+            onClick={() => {
+              const r = duplicateItem(p, { item: id })
+              if (run(r) && r.ok) select({ kind: 'item', id: r.created[0] })
+            }}
+          >
+            <Icon name="copy" size={15} /> Duplicate
+          </button>
+        </div>
       </Section>
+      {a.variants && a.variants.length > 1 && (
+        <Section title="Finish">
+          <Swatches label="Finish" options={a.variants} value={it.variant ?? a.variants[0].id} onPick={(v) => run(setItemVariant(p, { item: id, variant: v === a.variants![0].id ? undefined : v }))} />
+          <p className="text-[11.5px] text-mute">{(a.variants.find((v) => v.id === it.variant) ?? a.variants[0]).name}</p>
+        </Section>
+      )}
       {same.length > 1 && (
         <Section title="Replace with">
           <select className="field py-1.5" value={it.asset} onChange={(e) => run(replaceItem(p, { item: id, asset: e.target.value }))} aria-label="Replace with">

@@ -190,3 +190,52 @@ resolution), because three.js' forward renderer shades every light on every pixe
 recompiling shaders when switching modes.
 
 The level is kept per viewer, with the navigation settings, not in the project.
+
+## D17 — Templates are declarative specs replayed through the editor's commands
+
+A house template is a `HouseSpec`: rooms (rectangles or polygons), openings given as points on walls,
+and furniture with finishes. `buildHouse` replays it through `createRoom`, `addOpening` and `addItem`,
+exactly as a user would.
+
+Consequences:
+- **A template can't contain geometry the editor couldn't make.** It goes through the same validation,
+  and a build step that fails or moves an opening throws.
+- **Each template is a fresh project** with new ids, so a user's copy never aliases the template.
+- **Card numbers are computed from the built model** (bedrooms, bathrooms, floors, net area), never
+  typed in.
+- **Every template must pass an invariant suite** (`tests/unit/engine/templates.test.ts`):
+  - valid model, and an exact save/load round trip;
+  - known finishes and assets;
+  - furniture inside its room, clear of walls;
+  - a front door, with every room reachable by walking from it;
+  - daylight in habitable rooms;
+  - a thumbnail.
+
+**Rejected:**
+- *Static JSON project files:* they would need migrating with every schema change, and wouldn't
+  exercise the commands.
+- *Hand-built 3D scenes per template:* they would diverge from the editable model (brief requirement).
+
+## D18 — Thumbnails are captured from the real renderer
+
+**Assets:** `scripts/capture-thumbnails.mjs` loads a development-only page (`/__studio`, excluded from
+production builds by `import.meta.env.DEV`, which the release grep confirms). The page renders one
+catalogue item with the editor's own `Items` renderer on a transparent background.
+
+**Templates:** each house is opened through the real UI (Designs → card → create → 3D overview) and
+its canvas is captured.
+
+Thumbnails are therefore pictures of the actual asset or house as the user will see it, and they can
+be regenerated after any visual change. If a picture is missing, the UI falls back to drawings from
+data: the footprint for assets, the plan for templates.
+
+## D19 — Open-air rooms are rooms
+
+Balconies, terraces and courtyards are rooms with an outdoor type. They:
+- get no ceiling or roof slab, skirting or room light;
+- count as "outside" for `wallSides(p, indoorOnly)`, so the walls facing them get the facade finish,
+  external sills and eaves;
+- can be enclosed by low parapet walls (minimum wall height lowered to 0.9 m), which still block the
+  walkthrough.
+
+This keeps courtyards and balconies as editable model data, with no special-case geometry.

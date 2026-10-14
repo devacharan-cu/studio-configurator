@@ -1,5 +1,50 @@
 # Testing record
 
+## Phase 3 — M1 template and asset architecture (2026-10-14)
+
+| Command | Result |
+|---|---|
+| `npx tsc -b` / `npx oxlint` / build | pass / 0 / pass; no dev handles or `/__studio` in `dist/` |
+| `npx vitest run` | 107/107 |
+| `npx playwright test` | **47 passed, 2 skipped** (device-specific), 0 failed, 7.5 min |
+
+**New unit suites:**
+- `templates.test.ts` runs the invariant suite for **every** template:
+  - valid model and an exact save/load round trip;
+  - known finishes, assets and variants;
+  - furniture inside its room and clear of walls;
+  - a front door, with every room reachable by walking from it (flood fill with collisions);
+  - daylight in habitable rooms;
+  - card numbers derived from the model;
+  - a fresh id per build;
+  - a captured thumbnail.
+- `assets.test.ts`, per catalogue entry:
+  - a real GLB file (magic bytes), a source URL and a licence;
+  - a plausible size;
+  - a thumbnail on disk;
+  - unique variants.
+  - It also covers duplicate (beside the original, staying in the room, flipping away from a wall),
+    finishes validated against the asset, and save/load.
+
+**New E2E `library.spec.ts`:**
+- **Designs:** card facts and a loaded thumbnail; search with an empty state; the preview shows the
+  real plan and its 6 rooms. Creating a project, editing it (deleting a room), then creating again from
+  the same design gives back the complete house with a new id.
+- **Library:**
+  - search → thumbnail → place on the plan → duplicate (button);
+  - change finish → Ctrl+D (the copy keeps the finish) → undo;
+  - reload: everything persists;
+  - recently used is shown.
+- **Room suggestions:** a bedroom offers beds, not kitchens.
+
+**Defects found by the new invariants** (existing template):
+- the lounge chair's rotated footprint entered the north wall by about 5 cm;
+- the study armchair's entered the south wall.
+
+Both are fixed.
+
+---
+
 ## Phase 2 — M2 rendering (2026-10-14)
 
 | Command | Result |

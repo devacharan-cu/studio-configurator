@@ -3,6 +3,7 @@ import { usableRange } from '../geometry/walls'
 import type { Id, Opening, OpeningKind, Project } from '../model/types'
 import { LIMITS } from '../model/types'
 import { Draft, fail, finish, newId, type CommandResult } from './draft'
+import { itemCorners, roomAt } from './structure'
 
 export const OPENING_DEFAULTS: Record<OpeningKind, Pick<Opening, 'width' | 'height' | 'sill'>> = {
   door: { width: 0.9, height: 2.1, sill: 0 },
@@ -157,6 +158,35 @@ export function replaceItem(p: Project, args: { item: Id; asset: string }): Comm
   const d = new Draft(p)
   d.setItem({ ...it, asset: args.asset, variant: undefined })
   return finish(d, 'Replace item')
+}
+
+/** Copy an item beside the original (same asset, rotation and finish); kept inside its room. */
+export function duplicateItem(p: Project, args: { item: Id; dx?: number; dy?: number }): CommandResult {
+  const it = p.items[args.item]
+  if (!it) return fail('ref', 'That item no longer exists', args.item)
+  const a = getAsset(it.asset)
+  const step = Math.min(1, Math.max(0.3, (a ? Math.min(a.footprint.w, a.footprint.d) : 0.5) + 0.1))
+  const room = roomAt(p, it.level, it)?.id
+  const tries: [number, number][] = args.dx !== undefined || args.dy !== undefined ? [[args.dx ?? 0, args.dy ?? 0]] : [[step, 0], [-step, 0], [0, step], [0, -step]]
+  // the first offset whose footprint stays inside the same room (else the first one: the user moves it)
+  const fits = (x: number, y: number) => !room || itemCorners({ ...it, x, y }).every((c) => roomAt(p, it.level, c)?.id === room)
+  const [dx, dy] = tries.find(([tx, ty]) => fits(it.x + tx, it.y + ty)) ?? tries[0]
+  const d = new Draft(p)
+  const id = newId('i')
+  d.setItem({ ...it, id, x: it.x + dx, y: it.y + dy })
+  d.created.push(id)
+  return finish(d, `Duplicate ${a?.name ?? 'item'}`)
+}
+
+/** Choose one of the asset's finish options (fabric, wood, colour). */
+export function setItemVariant(p: Project, args: { item: Id; variant: string | undefined }): CommandResult {
+  const it = p.items[args.item]
+  if (!it) return fail('ref', 'That item no longer exists', args.item)
+  const a = getAsset(it.asset)
+  if (args.variant !== undefined && !a?.variants?.some((v) => v.id === args.variant)) return fail('variant', 'That finish isn’t available for this item')
+  const d = new Draft(p)
+  d.setItem({ ...it, variant: args.variant })
+  return finish(d, 'Change finish')
 }
 
 export function deleteItem(p: Project, args: { item: Id }): CommandResult {

@@ -4,8 +4,16 @@ import { lazy, Suspense } from 'react'
 // (kept at /garden-room as a working product demo and regression baseline).
 const GardenRoom = lazy(() => import('./garden-room/App'))
 const Editor = lazy(() => import('./editor/EditorApp'))
+// Thumbnail studio for scripts/capture-thumbnails.mjs: development server only, stripped from builds.
+const Studio = import.meta.env.DEV ? lazy(() => import('./editor/dev/ThumbStudio')) : null
 
 export default function Root() {
-  const isGardenRoom = window.location.pathname.replace(/\/+$/, '') === '/garden-room'
-  return <Suspense fallback={null}>{isGardenRoom ? <GardenRoom /> : <Editor />}</Suspense>
+  const path = window.location.pathname.replace(/\/+$/, '')
+  if (Studio && path === '/__studio')
+    return (
+      <Suspense fallback={null}>
+        <Studio />
+      </Suspense>
+    )
+  return <Suspense fallback={null}>{path === '/garden-room' ? <GardenRoom /> : <Editor />}</Suspense>
 }

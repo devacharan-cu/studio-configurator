@@ -1,15 +1,15 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { ASSETS, CATEGORY_LABELS, type AssetCategory } from '../engine/assets/catalog'
-import { deleteItem, deleteOpening, rotateItem } from '../engine/commands/elements'
+import { deleteItem, deleteOpening, duplicateItem, rotateItem } from '../engine/commands/elements'
 import { deleteRoom } from '../engine/commands/structure'
 import { canRedo, canUndo } from '../engine/history'
 import { parseProject, serializeProject } from '../engine/model/project'
-import { TEMPLATES } from '../engine/templates'
 import { PlanView } from './plan/PlanView'
 import { currentProject, useEditor, type Tool, type ViewMode } from './store'
+import { AssetLibrary } from './ui/AssetLibrary'
 import { Icon, type IconName } from './ui/icons'
 import { Inspector } from './ui/Inspector'
 import { NavHud } from './ui/NavHud'
+import { TemplateGallery } from './ui/TemplateGallery'
 import { ViewBar } from './ui/ViewBar'
 
 const Scene3D = lazy(() => import('./scene/Scene3D').then((m) => ({ default: m.Scene3D })))
@@ -22,7 +22,7 @@ const TOOLS: { id: Tool; label: string; icon: IconName; key: string; hint: strin
   { id: 'passage', label: 'Opening', icon: 'passage', key: 'O', hint: 'Click a wall to add an open passage' },
 ]
 
-function TopBar({ onFrame }: { onFrame: () => void }) {
+function TopBar({ onTemplates }: { onTemplates: () => void }) {
   const history = useEditor((s) => s.history)
   const saveState = useEditor((s) => s.saveState)
   const view = useEditor((s) => s.view)
@@ -75,23 +75,17 @@ function TopBar({ onFrame }: { onFrame: () => void }) {
         </button>
         {menu && (
           <div role="menu" className="absolute top-9 left-0 z-30 w-64 rounded-xl border border-line bg-paper p-1.5 shadow-xl">
-            <p className="eyebrow px-2 pt-1 pb-1.5">New from template</p>
-            {TEMPLATES.map((t) => (
-              <button
-                key={t.id}
-                role="menuitem"
-                type="button"
-                className="block w-full rounded-lg px-2 py-1.5 text-left hover:bg-linen"
-                onClick={() => {
-                  useEditor.getState().loadProject(t.build(), `Started “${t.name}” — undo history cleared`)
-                  setMenu(false)
-                  setTimeout(onFrame, 50)
-                }}
-              >
-                <span className="block text-[12.5px] font-medium">{t.name}</span>
-                <span className="block text-[11px] text-mute">{t.description}</span>
-              </button>
-            ))}
+            <button
+              role="menuitem"
+              type="button"
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] hover:bg-linen"
+              onClick={() => {
+                setMenu(false)
+                onTemplates()
+              }}
+            >
+              <Icon name="room" size={15} /> New from a design…
+            </button>
             <div className="my-1 h-px bg-line" />
             <button role="menuitem" type="button" className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] hover:bg-linen" onClick={exportJson}>
               <Icon name="download" size={15} /> Export project (.json)
@@ -106,6 +100,11 @@ function TopBar({ onFrame }: { onFrame: () => void }) {
         )}
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" data-testid="import-input" onChange={(e) => e.target.files?.[0] && importJson(e.target.files[0])} />
       </div>
+
+      <button type="button" className="btn-ghost h-8 px-2.5 text-[12.5px]" onClick={onTemplates} title="Browse house designs and start a project from one">
+        <Icon name="grid" size={15} /> <span className="hidden sm:inline">Designs</span>
+        <span className="sr-only sm:hidden">Designs</span>
+      </button>
 
       <div className="flex items-center gap-0.5">
         <button type="button" className="btn-ghost h-8 w-8 px-0" disabled={!canUndo(history)} onClick={undo} aria-label="Undo" title={`Undo ${history.label} (Ctrl+Z)`}>
@@ -207,69 +206,6 @@ function ToolRail({ library, setLibrary }: { library: boolean; setLibrary: (b: b
   )
 }
 
-function Library({ onClose }: { onClose: () => void }) {
-  const setTool = useEditor((s) => s.setTool)
-  const placeAsset = useEditor((s) => s.placeAsset)
-  const [q, setQ] = useState('')
-  const [cat, setCat] = useState<AssetCategory | 'all'>('all')
-  const list = ASSETS.filter((a) => (cat === 'all' || a.category === cat) && a.name.toLowerCase().includes(q.trim().toLowerCase()))
-  return (
-    <aside className="flex w-[264px] shrink-0 flex-col border-r border-line/80 bg-paper" aria-label="Furniture library">
-      <header className="flex items-center justify-between px-3 pt-3 pb-2">
-        <h2 className="font-display text-[20px]">Library</h2>
-        <button type="button" onClick={onClose} className="text-mute hover:text-ink" aria-label="Close library">
-          <Icon name="close" size={16} />
-        </button>
-      </header>
-      <div className="space-y-2 px-3 pb-2">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search furniture…" className="field py-1.5" aria-label="Search furniture" />
-        <div className="flex flex-wrap gap-1">
-          {(['all', ...Object.keys(CATEGORY_LABELS)] as (AssetCategory | 'all')[]).map((c) => (
-            <button key={c} type="button" onClick={() => setCat(c)} aria-pressed={cat === c} className={`rounded-full px-2 py-0.5 text-[11px] ${cat === c ? 'bg-ink text-paper' : 'bg-linen text-ink-soft'}`}>
-              {c === 'all' ? 'All' : CATEGORY_LABELS[c]}
-            </button>
-          ))}
-        </div>
-      </div>
-      <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-3">
-        {list.map((a) => (
-          <li key={a.id}>
-            <button
-              type="button"
-              data-asset={a.id}
-              aria-pressed={placeAsset === a.id}
-              onClick={() => setTool('place', a.id)}
-              className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors ${placeAsset === a.id ? 'border-ink bg-white' : 'border-transparent hover:bg-linen'}`}
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-linen text-ink-soft" aria-hidden="true">
-                <svg viewBox="-1.3 -1.3 2.6 2.6" width="28" height="28">
-                  <rect
-                    x={-a.footprint.w / Math.max(a.footprint.w, a.footprint.d)}
-                    y={-a.footprint.d / Math.max(a.footprint.w, a.footprint.d)}
-                    width={(2 * a.footprint.w) / Math.max(a.footprint.w, a.footprint.d)}
-                    height={(2 * a.footprint.d) / Math.max(a.footprint.w, a.footprint.d)}
-                    rx="0.12"
-                    fill="currentColor"
-                    opacity="0.35"
-                  />
-                </svg>
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-[12.5px] font-medium">{a.name}</span>
-                <span className="block text-[10.5px] text-mute">
-                  {a.footprint.w.toFixed(2)} × {a.footprint.d.toFixed(2)} m · {a.kind === 'procedural' ? 'modelled in code' : a.license.spdx === 'CC0-1.0' ? 'CC0 scan/model' : 'CC BY 4.0'}
-                </span>
-              </span>
-            </button>
-          </li>
-        ))}
-        {list.length === 0 && <li className="px-2 py-4 text-center text-[12px] text-mute">Nothing matches “{q}”.</li>}
-      </ul>
-      {placeAsset && <p className="border-t border-line/80 px-3 py-2 text-[11.5px] text-ink-soft">Click on the plan to place it. Esc to cancel.</p>}
-    </aside>
-  )
-}
-
 function Notices() {
   const notices = useEditor((s) => s.notices)
   const dismiss = useEditor((s) => s.dismiss)
@@ -305,6 +241,13 @@ function useShortcuts(setLibrary: (b: boolean) => void) {
         e.preventDefault()
         if (e.shiftKey) st.redo()
         else st.undo()
+        return
+      }
+      if (mod && e.key.toLowerCase() === 'd' && st.selection?.kind === 'item') {
+        e.preventDefault()
+        const p = currentProject()
+        const r = duplicateItem(p, { item: st.selection.id })
+        if (st.run(r) && r.ok) st.select({ kind: 'item', id: r.created[0] })
         return
       }
       if (mod && e.key.toLowerCase() === 'y') {
@@ -353,6 +296,7 @@ export default function EditorApp() {
   const camera = useEditor((s) => s.camera)
   const [library, setLibrary] = useState(false)
   const [frameKey, setFrameKey] = useState(0)
+  const [gallery, setGallery] = useState(false)
   useShortcuts(setLibrary)
   useEffect(() => {
     document.title = 'Roomset — building editor'
@@ -363,7 +307,7 @@ export default function EditorApp() {
   const show3d = view !== 'plan' || immersive
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-paper text-ink">
-      {!immersive && <TopBar onFrame={() => setFrameKey((k) => k + 1)} />}
+      {!immersive && <TopBar onTemplates={() => setGallery(true)} />}
       <div className="flex min-h-0 flex-1">
         {/* Structural editing tools need a pointer and room; phones get viewing + walkthrough. */}
         {camera === 'orbit' && (
@@ -371,7 +315,7 @@ export default function EditorApp() {
             <ToolRail library={library} setLibrary={setLibrary} />
           </div>
         )}
-        {library && !immersive && <Library onClose={() => setLibrary(false)} />}
+        {library && !immersive && <AssetLibrary onClose={() => setLibrary(false)} />}
         <main className="flex min-w-0 flex-1">
           {showPlan && (
             <section className={`relative min-w-0 ${show3d ? 'w-1/2 border-r border-line/80' : 'flex-1'}`} aria-label="2D plan">
@@ -391,6 +335,7 @@ export default function EditorApp() {
           <Inspector />
         </div>
       </div>
+      {gallery && <TemplateGallery onClose={() => setGallery(false)} onCreated={() => setTimeout(() => setFrameKey((k) => k + 1), 50)} />}
       <Notices />
     </div>
   )

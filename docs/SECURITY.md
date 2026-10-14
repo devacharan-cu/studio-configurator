@@ -1,5 +1,24 @@
 # Security review
 
+## Phase 3 — M1 (2026-10-14)
+
+| Check | Result |
+|---|---|
+| `npm audit` | 0 vulnerabilities (no new dependencies) |
+| Semgrep (5 rulesets) over `src`, `tests`, `scripts` | 0 findings, 86 files |
+| Gitleaks over `src`, `scripts` | no leaks |
+
+**New surfaces:**
+- **Recently used assets** in `localStorage` are untrusted: only ids that exist in the catalogue
+  survive the read, capped at 8, and failures are swallowed.
+- **The `/__studio` thumbnail page** exists only in the development server (`import.meta.env.DEV`).
+  The release grep confirms neither the route nor the component is in `dist/`.
+- **Finish variants** are validated against the asset's own list in the command (`setItemVariant`).
+  The parser already bounds `variant` to a 40-character string, and the renderer looks it up rather
+  than evaluating it.
+- **Project files from older versions** still parse: the new room types are additions to the enum, and
+  the lower minimum wall height only accepts more.
+
 ## Phase 2 — M2 rendering (2026-10-14)
 
 | Check | Result |

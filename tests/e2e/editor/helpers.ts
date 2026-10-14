@@ -2,12 +2,13 @@ import { expect, type Page } from '@playwright/test'
 
 /** The canonical project as autosaved by the editor (the same document a reload restores). */
 export interface SavedProject {
+  id: string
   name: string
   nodes: Record<string, { id: string; x: number; y: number }>
   walls: Record<string, { id: string; a: string; b: string; thickness: number }>
   rooms: Record<string, { id: string; name: string; boundary: string[]; floorFinish: string }>
   openings: Record<string, { id: string; wall: string; kind: string; offset: number; width: number }>
-  items: Record<string, { id: string; asset: string; x: number; y: number; rotation: number }>
+  items: Record<string, { id: string; asset: string; x: number; y: number; rotation: number; variant?: string }>
 }
 
 export const STORAGE_KEY = 'roomset.editor.v1.project'

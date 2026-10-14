@@ -97,8 +97,11 @@ function Block({ size, pos, mat, r = 0.04 }: { size: [number, number, number]; p
   return <mesh geometry={g} material={mat} position={pos} castShadow receiveShadow />
 }
 
-function Sofa({ a }: { a: AssetDef }) {
-  const mat = useFabric('rough_linen', '#d6cab8', 0.6, linenMat)
+/** The tint of the chosen finish variant (first variant when none is set). */
+const tintOf = (a: AssetDef, variant: string | undefined, fallback: string) => (a.variants?.find((v) => v.id === variant) ?? a.variants?.[0])?.tint ?? fallback
+
+function Sofa({ a, variant }: ProcProps) {
+  const mat = useFabric('rough_linen', tintOf(a, variant, '#d6cab8'), 0.6, linenMat)
   const { w, d } = a.footprint
   const arm = 0.2
   const inner = w - arm * 2
@@ -119,8 +122,8 @@ function Sofa({ a }: { a: AssetDef }) {
   )
 }
 
-function Bed({ a }: { a: AssetDef }) {
-  const mat = useFabric('curly_teddy_natural', '#e6dfd2', 0.5, boucleMat)
+function Bed({ a, variant }: ProcProps) {
+  const mat = useFabric('curly_teddy_natural', tintOf(a, variant, '#e6dfd2'), 0.5, boucleMat)
   const { w, d } = a.footprint
   return (
     <group position-z={-d / 2}>
@@ -243,13 +246,14 @@ function Wc({ a }: { a: AssetDef }) {
   )
 }
 
-function Rug({ a }: { a: AssetDef }) {
-  const mat = useFabric('curly_teddy_natural', '#dfd5c4', 0.22, rugMat)
+function Rug({ a, variant }: ProcProps) {
+  const mat = useFabric('curly_teddy_natural', tintOf(a, variant, '#dfd5c4'), 0.22, rugMat)
   const g = useMemo(() => rbox(a.footprint.w, a.footprint.h, a.footprint.d, 0.006), [a])
   return <mesh geometry={g} material={mat} position-y={a.footprint.h / 2 + 0.001} receiveShadow />
 }
 
-const PROCEDURAL: Record<string, (p: { a: AssetDef }) => ReactNode> = {
+type ProcProps = { a: AssetDef; variant?: string }
+const PROCEDURAL: Record<string, (p: ProcProps) => ReactNode> = {
   'sofa-arlo': Sofa,
   'bed-double': Bed,
   wardrobe: Wardrobe,
@@ -304,7 +308,7 @@ const ItemObject = memo(function ItemObject({ item, elevation, selected, handler
       onPointerOut={() => handlers.onHover(null)}
     >
       <AssetBoundary fallback={<Placeholder a={a} failed />}>
-        <Suspense fallback={<Placeholder a={a} />}>{Proc ? <Proc a={a} /> : <GltfAsset asset={a} />}</Suspense>
+        <Suspense fallback={<Placeholder a={a} />}>{Proc ? <Proc a={a} variant={item.variant} /> : <GltfAsset asset={a} />}</Suspense>
       </AssetBoundary>
       {/* soft contact shadow */}
       <mesh rotation-x={-Math.PI / 2} position-y={0.02} raycast={() => null} renderOrder={1}>

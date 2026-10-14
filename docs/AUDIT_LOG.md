@@ -401,3 +401,63 @@ Full backlog with acceptance criteria: PRODUCT_ROADMAP §3.
 
 **Roadmap:** PRODUCT_ROADMAP.md, covering the capability matrix, ranked backlog, milestone sequence
 and an honest commercial-readiness section with a validation plan (no customers exist yet).
+
+## P3-M1 — Template and asset architecture
+
+**What changed and why:**
+- **Templates as data** (D17), in `src/engine/templates/`:
+  - `HouseSpec` and `buildHouse` replay a spec through the editor's commands;
+  - a registry with kind, style, tags and description;
+  - card stats computed from the built model;
+  - the compact home converted to a spec.
+  - Content can now grow without touching the editor, and every template is validated.
+- **House library UI** (`TemplateGallery`):
+  - type filter and search;
+  - cards with a captured thumbnail and computed facts (bedrooms, bathrooms, floors, m²);
+  - a preview showing the captured 3D view, the real plan drawn from data, the room list and tags;
+  - "Create a project from this design" makes a fresh copy, and the template never changes.
+  - Opened from the new **Designs** button and the Project menu.
+- **Asset library** (`AssetLibrary`):
+  - real thumbnails;
+  - grouping by category, with empty categories hidden;
+  - search including tags;
+  - "For <room>" suggestions when a room is selected;
+  - recently used, kept per viewer and validated on read;
+  - dimensions and licence on every card.
+- **Item workflows:**
+  - `duplicateItem` (Inspector button, Ctrl+D), which stays inside the room;
+  - `setItemVariant` with Inspector finish swatches: 5 fabrics for the sofa, 4 bouclés for the bed
+    and rug.
+- **Thumbnails** (D18): `scripts/capture-thumbnails.mjs` plus the dev-only `/__studio` page; 24 asset
+  thumbnails and 1 template thumbnail captured from the real renderer.
+- **Engine:**
+  - room types `dressing`, `pooja`, `laundry`, `garage`, `balcony`, `terrace` and `courtyard`;
+  - open-air rooms (D19): `wallSides(p, indoorOnly)`, no roof slab, ceiling, skirting or light, a
+    facade finish facing them, parapets allowed (minimum wall height 0.9 m);
+  - asset categories `lighting`, `plants` and `outdoor`.
+
+**Defects found and fixed:**
+
+| # | Defect | Cause | Fix |
+|---|---|---|---|
+| 1 | Lounge chair and study armchair partly inside walls in the original house | Rotated footprints were never checked | New invariant "furniture inside its room, clear of walls"; both moved |
+| 2 | Library showed empty category chips | Categories listed from the type, not the data | Only categories with items are shown |
+| 3 | First E2E run of the new spec tested a stale build | A type error in the new test stopped `npm run build`, so Playwright used the previous `dist/` | Fixed the test helper types; re-ran on a fresh build (the gate script builds before testing and its output is checked) |
+| 4 | Dev server served a 404 for the moved templates module | Vite's module graph went stale after `templates.ts` became a folder | Restarted the dev server (found by a page-error check) |
+
+**Browser validation:**
+- Production build, Playwright headless on the real GPU: the Designs gallery, search, preview and
+  create flow, the library, placing, duplicating, changing finishes, undo and reload.
+- Screenshots inspected: `docs/screenshots/editor/p3m1-gallery.jpg`, `p3m1-preview.jpg`,
+  `p3m1-library.jpg`. No console errors.
+
+**Commands & results:** see TESTING "Phase 3 — M1".
+- unit 107/107;
+- E2E 47 passed, 2 skipped, 0 failed;
+- `npm audit` 0, Semgrep 0 (86 files), Gitleaks 0.
+
+**Known limitations after M1:**
+- Only one house template exists; the batches are P3-M4/M5.
+- Ten catalogue entries are parametric (code-modelled), and five of them are visibly crude
+  (kitchen, bath, vanity, WC, wardrobe). They are replaced in P3-M3.
+- The plan view doesn't yet draw open-air rooms differently from indoor rooms.

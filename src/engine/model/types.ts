@@ -41,17 +41,30 @@ export interface Wall {
   height: number
 }
 
-export type RoomType =
-  | 'living'
-  | 'dining'
-  | 'kitchen'
-  | 'bedroom'
-  | 'bathroom'
-  | 'hall'
-  | 'study'
-  | 'utility'
-  | 'storage'
-  | 'other'
+export const ROOM_TYPES = [
+  'living',
+  'dining',
+  'kitchen',
+  'bedroom',
+  'bathroom',
+  'hall',
+  'study',
+  'utility',
+  'storage',
+  'dressing',
+  'pooja',
+  'laundry',
+  'garage',
+  'balcony',
+  'terrace',
+  'courtyard',
+  'other',
+] as const
+export type RoomType = (typeof ROOM_TYPES)[number]
+
+/** Open-air spaces: no ceiling or roof; their walls count as exterior (facade finish, eaves, entrances). */
+export const OUTDOOR_TYPES: readonly RoomType[] = ['balcony', 'terrace', 'courtyard']
+export const isOutdoor = (r: { type: RoomType }) => OUTDOOR_TYPES.includes(r.type)
 
 export interface Room {
   id: Id
@@ -121,7 +134,8 @@ export const LIMITS = {
   minWallLength: 0.2,
   minWallThickness: 0.05,
   maxWallThickness: 0.6,
-  minWallHeight: 2.0,
+  /** Low enough for balcony and terrace parapets. */
+  minWallHeight: 0.9,
   maxWallHeight: 6.0,
   minRoomArea: 0.8,
   /** Minimum angle between walls meeting at a node (radians, ~10°). */
