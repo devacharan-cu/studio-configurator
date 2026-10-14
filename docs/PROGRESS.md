@@ -9,7 +9,7 @@ equal to `origin/feature/building-engine` after `git fetch`). Pushes go to the s
 | # | Milestone | Status | Commit | Evidence |
 |---|---|---|---|---|
 | P2-M1 | Game-like navigation: full-screen walk + free camera + orbit presets; fixed overlapping-opening warnings | Done, pushed | `3e08119` | 61/61 unit; E2E 41 passed + 2 device skips; headed + headless browser validation; audit 0, Semgrep 0, Gitleaks 0 |
-| P2-M2 | Real-time rendering: real sky + matched sun, lawn/terrace/path, roof, joinery, skirting, ceilings, room light, quality levels; entrance arrivals | Done | (this commit) | 70/70 unit; E2E 44 passed + 2 device skips; performance table in TESTING; audit 0, Semgrep 0 findings, 78 files, Gitleaks 0 |
+| P2-M2 | Real-time rendering: real sky + matched sun, lawn/terrace/path, roof, joinery, skirting, ceilings, room light, quality levels; entrance arrivals | Done, pushed | `2412408` | 70/70 unit; E2E 44 passed + 2 device skips; performance table in TESTING; audit 0, Semgrep 0 findings, 78 files, Gitleaks 0 |
 | P2-M3 | Asset and material library | Planned | | |
 | P2-M4 | Complete-home and room templates | Planned | | |
 | P2-M5 | Product polish and final regression audit | Planned | | |

@@ -339,3 +339,6 @@ history; dev handles absent from `dist/`.
   bounding box, not the footprint.
 - **Code-modelled pieces** (kitchen, bed, wardrobe, bath, desk) are still simple shapes: that is M3.
 - **Hardware:** measured on one integrated GPU only.
+
+**Commit:** `2412408`, pushed to `origin/feature/immersive-home-experience` (fast-forward from `52bbb9d`,
+normal push, no force), authored by `devacharan-cu <devacharan@gmail.com>`, no co-author trailer.
