@@ -461,3 +461,5 @@ and an honest commercial-readiness section with a validation plan (no customers 
 - Ten catalogue entries are parametric (code-modelled), and five of them are visibly crude
   (kitchen, bath, vanity, WC, wardrobe). They are replaced in P3-M3.
 - The plan view doesn't yet draw open-air rooms differently from indoor rooms.
+
+**Commit:** `086dcf9`, pushed to `origin/feature/house-library-and-assets` (fast-forward, no force), author and committer `devacharan-cu <devacharan@gmail.com>`, no co-author trailer.
