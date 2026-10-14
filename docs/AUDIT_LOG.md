@@ -666,3 +666,5 @@ FBX-only books (reasons in ASSETS.md).
   it; there are no pitched roofs.
 - **Removing floors:** only the top floor; removing a middle floor isn't supported.
 - **Thumbnail framing:** the narrow row house reads small in its thumbnail.
+
+**Commit:** `f9f3e77` on `feature/house-library-and-assets`, pushed to origin (fast-forward from `d7879ec`).
