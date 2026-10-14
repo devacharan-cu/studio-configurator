@@ -617,3 +617,5 @@ FBX-only books (reasons in ASSETS.md).
   lowered walls and can hide part of a room in thumbnails.
 - **Tiny rooms** (the 1.8 m pooja room) arrive very close to their contents in the walkthrough.
 - **Small rooms' plan labels** are hidden at the default zoom, by design.
+
+**Commit:** `3573763` on `feature/house-library-and-assets`, pushed to origin (fast-forward from `caf7aba`).
