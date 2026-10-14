@@ -518,3 +518,5 @@ FBX-only books (reasons in ASSETS.md).
   pieces fill that gap and are rebuilt in P3-M3.
 - **Mirrors reflect the outdoor sky.**
 - **The heaviest model has 154k triangles** (a leafy plant).
+
+**Commit:** `6aff0eb`, pushed to `origin/feature/house-library-and-assets` (fast-forward, no force), author and committer `devacharan-cu <devacharan@gmail.com>`. The in-progress P3-M3 edits were kept out of this commit, and a rebuild produced identical bundle hashes to the build the browser suite tested.
