@@ -115,11 +115,14 @@ export interface Entrance {
  * from the front door and to place the street viewpoint.
  */
 export function entrances(p: Project, level: Id): Entrance[] {
-  const sides = wallSides(p, true)
+  // a way into the house: a door with a room on one side and nothing at all on the other (a door onto
+  // a balcony or courtyard leads to a parapet or the house again, not to the street)
+  const sides = wallSides(p)
   const out: Entrance[] = []
   for (const w of wallsOnLevel(p, level)) {
     const s = sides[w.id] ?? {}
     if (!!s.left === !!s.right) continue
+    if (isOutdoor(p.rooms[(s.left ?? s.right)!])) continue
     const { a, dir, normal } = wallFrame(p, w)
     const outward = s.left ? scale(normal, -1) : normal
     for (const o of openingsOnWall(p, w.id)) {

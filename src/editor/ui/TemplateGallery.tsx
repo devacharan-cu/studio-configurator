@@ -11,7 +11,7 @@ function Facts({ t }: { t: TemplateDef }) {
   const s = templatePreview(t).stats
   return (
     <p className="text-[11.5px] text-ink-soft tabular-nums" data-testid="template-facts">
-      {s.bedrooms} bed · {s.bathrooms} bath · {s.floors} {s.floors === 1 ? 'floor' : 'floors'} · {s.area.toFixed(0)} m²
+      {s.bedrooms ? `${s.bedrooms} bed` : 'Studio'} · {s.bathrooms} bath · {s.floors} {s.floors === 1 ? 'floor' : 'floors'} · {s.area.toFixed(0)} m²
     </p>
   )
 }

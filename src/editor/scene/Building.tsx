@@ -244,8 +244,54 @@ function OpeningFixtures({ project, o, elevation, display, ext, handlers, select
   )
 }
 
+/** One glazed leaf: slim frame (stiles, rails, deeper bottom rail) around a glass pane, local x 0 → w. */
+function GlassLeaf({ w, h, t, mat }: { w: number; h: number; t: number; mat: THREE.Material }) {
+  const s = 0.06
+  return (
+    <group>
+      {[s / 2, w - s / 2].map((x) => (
+        <mesh key={x} position={[x, h / 2, 0]} material={mat} castShadow>
+          <boxGeometry args={[s, h, t]} />
+        </mesh>
+      ))}
+      <mesh position={[w / 2, h - s / 2, 0]} material={mat}>
+        <boxGeometry args={[w - 2 * s, s, t]} />
+      </mesh>
+      <mesh position={[w / 2, 0.06, 0]} material={mat}>
+        <boxGeometry args={[w - 2 * s, 0.12, t]} />
+      </mesh>
+      <mesh position={[w / 2, (h + 0.12 - s) / 2, 0]} material={MATS.glass}>
+        <boxGeometry args={[w - 2 * s, h - 0.12 - s, 0.01]} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Wide door openings (≥ 1.3 m) are glazed double doors (patio, balcony): two leaves, open into the swing side. */
+function GlazedDoors({ o, t, selected }: { o: Opening; t: number; selected: boolean }) {
+  const lt = 0.05
+  const leafW = (o.width - 0.05) / 2 - 0.004
+  const side = o.swing === 'left' ? 1 : -1
+  const open = (85 * Math.PI) / 180
+  const h = o.height - 0.03
+  const mat = selected ? MATS.selection : MATS.frame
+  return (
+    <>
+      {[-1, 1].map((end) => (
+        // hinge at each jamb; each leaf swings into the room on the swing side
+        <group key={end} position={[end * (o.width / 2 - 0.025), 0.005, side * (t / 2 - lt / 2 - 0.01)]} rotation-y={end * side * open}>
+          <group rotation-y={end === 1 ? Math.PI : 0}>
+            <GlassLeaf w={leafW} h={h} t={lt} mat={mat} />
+          </group>
+        </group>
+      ))}
+    </>
+  )
+}
+
 /** Leaf opened ~85° into the swing side so the walkthrough can pass; lever handles on both faces. */
 function DoorLeaf({ o, t, exterior, selected }: { o: Opening; t: number; exterior: boolean; selected: boolean }) {
+  if (o.width >= 1.3) return <GlazedDoors o={o} t={t} selected={selected} />
   const lt = 0.044
   const leafW = o.width - 0.05 - 0.006
   const along = o.hinge === 'a' ? 1 : -1

@@ -48,7 +48,7 @@ export const EXTERIOR_FINISHES: FinishDef[] = [
   { id: 'exterior-render', name: 'Lime render', texture: 'white_plaster_02', tileSize: 2.0, tint: '#e9e4da', normalScale: 0.5, swatch: '#e9e4da' },
   { id: 'white-stucco', name: 'White stucco', texture: 'white_plaster_02', tileSize: 2.0, tint: '#fbf9f5', normalScale: 0.35, swatch: '#f5f3ef' },
   { id: 'sandstone-render', name: 'Sandstone render', texture: 'white_plaster_02', tileSize: 2.0, tint: '#d9c4a3', normalScale: 0.5, swatch: '#d4bd99' },
-  { id: 'charcoal-render', name: 'Charcoal render', texture: 'plastered_wall_04', tileSize: 3.2, tint: '#5b5955', normalScale: 0.3, swatch: '#4a4845' },
+  { id: 'charcoal-render', name: 'Charcoal render', texture: 'plastered_wall_04', tileSize: 3.2, tint: '#6e6c68', normalScale: 0.3, swatch: '#4a4845' },
   { id: 'facade-brick', name: 'Whitewashed brick', texture: 'whitewashed_brick', tileSize: 2.0, tint: '#ffffff', swatch: '#d8d2c8' },
   { id: 'facade-stone', name: 'Stone cladding', texture: 'stone_tile_wall', tileSize: 2.0, tint: '#ede8e0', swatch: '#b9b2a8' },
 ]

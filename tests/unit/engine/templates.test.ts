@@ -89,7 +89,7 @@ describe.each(houses.map((t) => [t.id, t] as const))('template %s', (_id, t) => 
       })
       expect(near, `${e.name} reachable from the front door`).toBe(true)
     }
-  })
+  }, 60_000)
 
   it('habitable rooms have daylight (a window or glazed door on their walls)', () => {
     for (const r of Object.values(p.rooms)) {

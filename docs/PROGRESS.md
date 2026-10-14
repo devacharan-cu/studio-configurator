@@ -12,15 +12,19 @@ The plan and backlog are in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md).
 | P3-M1 | Template + asset architecture, gallery, asset browser, duplicate, item finishes, outdoor rooms | Done, pushed | `086dcf9` | 107/107 unit; E2E 47 passed + 2 device skips; audit 0, Semgrep 0, Gitleaks 0 |
 | P3-M2 | Asset pipeline; library 26 → 82 entries (72 distinct third-party models); wall/ceiling/tabletop placement; credits | Done, pushed | `6aff0eb` | 169/169 unit; E2E **49 passed, 2 skipped** (device-specific), 0 failed, 7.8 min; 82/82 assets load in the real renderer |
 | P3-M3 | Finish library (15 floors, 9 walls, 6 facades); parametric kitchens/bathrooms/beds/wardrobes (22 parametric entries); planar mirror at Quality; footprint terrace; anti-tiling lawn; startup 3.2 s → 1.75 s longest freeze | Done, pushed | `915793b` | 183/183 unit; E2E **50 passed, 2 skipped** (device-specific), 0 failed, 7.8 min |
-| P3-M4 | First batch of house templates | Planned | | |
+| P3-M4 | 6 new house templates (7 total): studio, 2BHK city apartment, 3BHK family apartment, L-shaped bungalow, courtyard house, 4-bed family home; glazed double doors | Done | (this commit) | 225/225 unit; E2E 57 passed, 2 skipped (viewport-specific); every room of every house walked |
 | P3-M5 | Multi-storey + templates to 10–15 | Planned | | |
 | P3-M6 | Variants, finish packages, presentation, still export | Planned | | |
 | P3-M7 | End-to-end review | Planned | | |
 
-**Next concrete task:** P3-M4. Write the first batch of single-storey house and apartment specs
-(apartments, an L-shaped bungalow, a courtyard house, a compact urban home, a contemporary family
-home), each passing the template invariant suite. Then capture their thumbnails through the gallery
-and walk each one.
+**Next concrete task:** P3-M5, multi-storey.
+1. Render every level in 3D, stacked, with upper levels hidden while editing a lower one.
+2. Add a level switcher in the editor.
+3. Make stairs a parametric element that cuts a stairwell void and guard rail in the floor above.
+4. Let the walkthrough climb stairs and change level.
+5. Support levels in `HouseSpec`.
+6. Then add the duplex, townhouse and two-storey villa, plus more single-storey designs, to reach
+   10–15 templates.
 
 ---
 

@@ -1,5 +1,16 @@
 # Security review
 
+## Phase 3 — M4 (2026-10-15)
+
+| Check | Result |
+|---|---|
+| `npm audit` | 0 vulnerabilities (no new dependencies) |
+| Semgrep (5 rulesets) over `src`, `tests`, `scripts` | 0 findings |
+| Gitleaks over `src`, `scripts`, `public`, `docs` | no leaks |
+
+No new input surfaces. Templates are code built through the validated commands. Template thumbnails
+are static images captured by the repository's script.
+
 ## Phase 3 — M3 (2026-10-15)
 
 | Check | Result |

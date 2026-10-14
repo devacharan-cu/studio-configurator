@@ -125,6 +125,8 @@ test.describe('editor: 2D plan → model → 3D', () => {
 
   test('a corrupted saved project is refused and the editor still opens', async ({ page }) => {
     await page.goto('/')
+    // the editor chunk is lazy: wait until it has run (and persisted its project) before corrupting the save
+    await expect(page.getByTestId('plan-view')).toBeVisible()
     await page.evaluate(() => localStorage.setItem('roomset.editor.v1.project', '{"schema":"roomset.project","version":1,"__proto__":{"x":1}}'))
     await page.reload()
     await expect(page.getByTestId('notice-error')).toContainText(/couldn’t be opened/)

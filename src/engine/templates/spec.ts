@@ -1,6 +1,6 @@
 import { addItem, addOpening, setItemVariant, updateOpening } from '../commands/elements'
 import type { CommandResult } from '../commands/draft'
-import { createRoom, updateRoom, updateWall } from '../commands/structure'
+import { createRoom, setFacade, updateRoom, updateWall } from '../commands/structure'
 import { wallSides } from '../geometry/walls'
 import { emptyProject } from '../model/project'
 import { nodePos } from '../model/query'
@@ -44,6 +44,8 @@ export interface HouseSpec {
   interior?: number
   /** Height of walls that enclose only open-air space (balcony/terrace parapets). */
   parapet?: number
+  /** Exterior wall finish (see EXTERIOR_FINISHES). */
+  facade?: string
   rooms: RoomSpec[]
   openings: OpeningSpec[]
   items: ItemSpec[]
@@ -112,6 +114,8 @@ export function buildHouse(spec: HouseSpec, templateId: string): Project {
     if (Math.abs(p.openings[id].offset - offset) > 1e-6) throw new Error(`Template step failed (${kind} at ${x},${y}): it overlaps another opening`)
     if (o.hinge || o.swing) p = must(updateOpening(p, { opening: id, hinge: o.hinge, swing: o.swing }), `${kind} hinge`)
   }
+
+  if (spec.facade) p = must(setFacade(p, { finish: spec.facade }), 'facade')
 
   for (const [asset, x, y, deg = 0, variant] of spec.items) {
     const before = new Set(Object.keys(p.items))

@@ -573,3 +573,47 @@ FBX-only books (reasons in ASSETS.md).
 - **Third-party furniture style** is mostly traditional or rustic (P3-M2).
 
 **Commit:** `915793b`, pushed to `origin/feature/house-library-and-assets` (fast-forward, no force), author and committer `devacharan-cu <devacharan@gmail.com>`.
+
+## P3-M4 — First batch of house templates
+
+**What changed and why:**
+- **Six new houses** (7 in total), each a `HouseSpec` built through the validated commands:
+
+  | Template | Kind | Plan | Rooms | Area (net) |
+  |---|---|---|---|---|
+  | Studio apartment | apartment | Open studio, entry, shower room, dressing, balcony | 5 | 39 m² |
+  | Two-bedroom city apartment | apartment, Indian urban | 2BHK: corridor plan, pooja room, utility, attached and common baths, store, balcony | 13 | 86 m² |
+  | Three-bedroom family apartment | apartment | 3BHK: central living, lobby to two bedrooms, master suite with dressing and bath, kitchen + utility, balcony | 12 | 115 m² |
+  | L-shaped bungalow | house | Day wing and night wing around a garden terrace | 12 | 136 m² |
+  | Courtyard house | house | U-plan around an open courtyard (aangan), glazed corridors | 11 | 132 m² |
+  | Contemporary family home | house | 4 bedrooms, open kitchen-diner, master suite, terrace | 13 | ~165 m² |
+
+- **Every house:**
+  - is furnished with the new library: real models plus the parametric kitchens, bathrooms and
+    bedrooms;
+  - has its own facade (stucco, sandstone, brick, charcoal) and floor and wall finishes per room;
+  - has a captured thumbnail.
+- **Glazed double doors:** door openings of 1.3 m or wider (balconies, terraces, courtyards) are now
+  glazed double doors. "Daylight from a glazed door" is therefore true visually, not just in the test.
+- **Engine:** entrances are doors that lead outside (D19 refinement). `HouseSpec.facade` was added.
+
+**Design method:**
+- Each plan was drafted with dimensions.
+- It was checked by the invariant suite and by an ASCII map of colliders and walkable cells from a
+  temporary debug test, which is not committed.
+- It was fixed until every room was reachable and every item cleared the walls.
+- Then each house was walked room by room in the browser.
+
+**Defects found and fixed:** see TESTING "Phase 3 — M4".
+
+**Commands & results:**
+- unit 225/225;
+- E2E 57 passed, 2 skipped (viewport-specific);
+- `npm audit` 0, Semgrep 0 findings, Gitleaks 0.
+
+**Known limitations:**
+- **All seven are single-storey.** Multi-storey is P3-M5, and is needed for the duplex and townhouse.
+- **Tall furniture in the cut-away overview** (wardrobes, fridges, shower screens) rises above the
+  lowered walls and can hide part of a room in thumbnails.
+- **Tiny rooms** (the 1.8 m pooja room) arrive very close to their contents in the walkthrough.
+- **Small rooms' plan labels** are hidden at the default zoom, by design.

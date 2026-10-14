@@ -1,5 +1,58 @@
 # Testing record
 
+## Phase 3 — M4 first batch of house templates (2026-10-15)
+
+| Command | Result |
+|---|---|
+| `npx tsc -b` / `npx oxlint` / build | pass / 0 / pass |
+| `npx vitest run` | 225/225 (the invariant suite now runs for all 7 houses) |
+| `npx playwright test` | 57 passed, 2 skipped (viewport-specific) |
+
+**Seven templates** (one existing plus six new). Every one passes the invariant suite:
+- valid model and an exact save/load round trip;
+- known finishes, assets and variants;
+- furniture inside rooms and clear of walls;
+- a front door, with every room reachable on foot from it;
+- daylight in habitable rooms;
+- numbers derived from the model;
+- a captured thumbnail.
+
+**New E2E `templates.spec.ts`**, for **each** of the six new houses in the production build:
+- open it from the gallery, and check the saved project has the preview's room count and the plan
+  draws the rooms;
+- the 3D canvas renders;
+- **walk into every room** through "Go to room", and the HUD agrees each time;
+- change the first room's floor to terrazzo, then reload, and it persists;
+- no console errors or failed requests.
+
+The gallery test also checks each card's numbers.
+
+**Hands-on tour** (dev server; scratch script):
+- every template opened from the gallery and every room visited in the walkthrough: 7 houses,
+  73 rooms;
+- the aerial view with roof checked;
+- no console errors.
+- Screenshots: `docs/screenshots/editor/p3m4-*.jpg`.
+
+**Defects found while building the templates, all fixed before commit:**
+- **Engine:** a balcony's glazed door counted as the house's front door, so the walkthrough started
+  on the balcony. Entrances must now lead outside, not to a parapet-enclosed balcony or courtyard.
+- **Layout:**
+  - furniture overlapping walls by 1–10 cm (seven items);
+  - doors blocked by a dining table, a bookcase, a bed, a wardrobe and a pooja console;
+  - a bedroom too tight for a double bed plus a wardrobe;
+  - a corridor too narrow for a bench;
+  - a picnic table filling a terrace;
+  - two 1.2 m wall segments too short for a 1 m passage (the engine refused, correctly).
+- **Display:** a studio card read "0 bed" (now "Studio"); the charcoal facade in shade read as black
+  (lightened).
+- **Test race:** the corrupted-save E2E failed only in the full run. Under load, the lazily loaded
+  editor ran after the test had written the corrupted save, and persisted its template over it before
+  the reload. The test now waits for the editor before corrupting the save. Its assertions are
+  unchanged.
+
+---
+
 ## Phase 3 — M3 materials and interior realism (2026-10-15)
 
 | Command | Result |
