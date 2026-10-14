@@ -76,5 +76,16 @@ AUDIT_LOG, Phase 2 tool audit), so documentation was fetched from the official s
   what a real Esc does.
 - Frame times in a headed window: see TESTING.
 
-Rendering research for M2 (materials, IBL, baked lighting, tone mapping, asset sources) is recorded
-with that milestone.
+## M2 — rendering (2026-10-14)
+
+| Source | Verified finding | Influence |
+|---|---|---|
+| three r186 source, `WebGLShadowMap.js` | `PCFSoftShadowMap` has been removed: using it warns and falls back to `PCFShadowMap`. PCF now takes 5 Vogel-disk taps with hardware comparison, scaled by `shadow.radius`. | Soft shadows come from `PCFShadowMap` + `shadow.radius` per quality level. |
+| three r186 `examples/jsm/loaders/RGBELoader.js` | Deprecated in r180 in favour of `HDRLoader`. | The editor loads its HDRI with `HDRLoader`. |
+| three r186 `ProgressiveLightMap.js`; drei `AccumulativeShadows`, `BakeShadows` | Lightmap accumulation assumes static objects with lightmap UVs. | Baking rejected while geometry is editable (D15). |
+| Poly Haven API (`/info`, `/files`) | Authors, CC0 licence, physical texture sizes (e.g. Grass Ground 2.51 m, Rectangular Paving 2.0 m), HDRI resolutions. | Tile sizes and the asset register (ASSETS.md). |
+| Our own HDRI analysis (`meadow_2_1k.hdr`) | The sun is at u 0.600, v 0.350 (azimuth 36°, elevation 27°) and holds 72% of the image's energy. | The sun becomes a real shadow-casting light; the lighting copy has it clamped out (D14). |
+| Measurement (Playwright, headed, Radeon 610M) | Pixel ratio dominates frame time. The sun shadow costs ~4 ms; one point light ~0; six point lights +20–30 ms over one. | Quality presets and the single room light (D16). |
+
+Post-processing (SSAO, bloom) was not re-evaluated, because D7's measurement still applies: it caused
+frame spikes on the target GPU.

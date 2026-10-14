@@ -1,4 +1,4 @@
-import { CameraControls, Environment, type CameraControlsImpl } from '@react-three/drei'
+import { CameraControls, type CameraControlsImpl } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
@@ -13,45 +13,17 @@ import { useEditor, useProject, type Selection } from '../store'
 import { Building, type PickHandlers } from './Building'
 import { Items } from './Items'
 import { preloadAsset } from './preload'
-import { MATS, preloadFinishTextures } from './materials'
+import { preloadFinishTextures } from './materials'
+import { Site } from './Site'
+import { preloadSky } from './sky'
+import { QUALITY } from './quality'
 import { Manipulator, type DragState } from './Manipulator'
 import { Walkthrough } from './Walkthrough'
 import { FreeFly } from './FreeFly'
 import { framePose, ORBIT_FOV, presetPose, type ViewPreset } from './framing'
 
 preloadFinishTextures()
-
-function Lights({ project, level }: { project: Project; level: string }) {
-  const b = planBounds(project, level)
-  const cx = (b.x0 + b.x1) / 2
-  const cz = (b.y0 + b.y1) / 2
-  const r = Math.max(b.x1 - b.x0, b.y1 - b.y0) / 2 + 2
-  const target = useMemo(() => new THREE.Object3D(), [])
-  target.position.set(cx, 0, cz)
-  return (
-    <>
-      <Environment files="/assets/env/small_empty_room_1_1k.hdr" environmentIntensity={0.7} />
-      <hemisphereLight args={['#f5f1ea', '#b3a28d', 0.55]} />
-      <primitive object={target} />
-      <directionalLight
-        position={[cx - r * 0.9, r * 1.6, cz - r * 0.6]}
-        target={target}
-        intensity={2.6}
-        color="#ffe9cc"
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.03}
-        shadow-camera-left={-r}
-        shadow-camera-right={r}
-        shadow-camera-top={r}
-        shadow-camera-bottom={-r}
-        shadow-camera-near={0.5}
-        shadow-camera-far={r * 5}
-      />
-    </>
-  )
-}
+preloadSky(useEditor.getState().nav.quality)
 
 /** The orbit pose to come back to after walking or flying (module state: survives the rig unmounting). */
 let savedOrbit: { position: THREE.Vector3; target: THREE.Vector3 } | null = null
@@ -174,20 +146,12 @@ function OrbitRig({ frameKey }: { frameKey: number }) {
   return <CameraControls ref={ref} makeDefault minDistance={0.6} maxDistance={90} maxPolarAngle={Math.PI / 2 - 0.02} dollyToCursor smoothTime={0.35} />
 }
 
-function Ground() {
-  return (
-    <mesh rotation-x={-Math.PI / 2} position-y={-0.02} receiveShadow raycast={() => null}>
-      <circleGeometry args={[60, 48]} />
-      <primitive object={MATS.ground} attach="material" />
-    </mesh>
-  )
-}
-
 function SceneContent({ frameKey }: { frameKey: number }) {
   const project = useProject()
   const level = useEditor((s) => s.level)
   const camera = useEditor((s) => s.camera)
   const cutaway = useEditor((s) => s.cutaway)
+  const quality = useEditor((s) => s.nav.quality)
   const invalidate = useThree((s) => s.invalidate)
   const drag = useRef<DragState | null>(null)
 
@@ -256,8 +220,7 @@ function SceneContent({ frameKey }: { frameKey: number }) {
   const firstPerson = camera !== 'orbit'
   return (
     <>
-      <Lights project={project} level={level} />
-      <Ground />
+      <Site project={project} level={level} firstPerson={firstPerson} quality={quality} />
       <Building project={project} level={level} cutaway={!firstPerson && cutaway} ceilings={firstPerson} handlers={handlers} />
       <Items project={project} level={level} handlers={handlers} />
       {camera === 'walk' && <Walkthrough />}
@@ -270,11 +233,12 @@ function SceneContent({ frameKey }: { frameKey: number }) {
 
 export function Scene3D({ frameKey }: { frameKey: number }) {
   const camera = useEditor((s) => s.camera)
+  const quality = useEditor((s) => s.nav.quality)
   return (
-    <div className="relative h-full w-full bg-[#ebe7e0]" data-testid="scene-view">
+    <div className="relative h-full w-full bg-[#c9d6e0]" data-testid="scene-view" data-quality={quality}>
       <Canvas
         shadows="percentage"
-        dpr={[1, 1.75]}
+        dpr={QUALITY[quality].dpr}
         frameloop={camera === 'orbit' ? 'demand' : 'always'}
         camera={{ fov: ORBIT_FOV, near: 0.05, far: 200, position: [14, 10, 14] }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
@@ -286,8 +250,8 @@ export function Scene3D({ frameKey }: { frameKey: number }) {
         }}
         aria-label="3D view of the building"
       >
-        {/* a pale sky outside the windows in first person; the studio backdrop while editing */}
-        <color attach="background" args={[camera === 'orbit' ? '#ebe7e0' : '#dde5ea']} />
+        {/* shown only until the sky has loaded */}
+        <color attach="background" args={['#c9d6e0']} />
         <Suspense fallback={null}>
           <SceneContent frameKey={frameKey} />
         </Suspense>

@@ -15,6 +15,21 @@ async function hold(page: Page, key: string, ms: number) {
   await page.waitForTimeout(300)
 }
 
+/** Take pointer lock and turn to yaw 0 (north) with a relative mouse move, as a person would. */
+async function faceNorth(page: Page) {
+  await page.waitForTimeout(400) // the HUD's look attribute refreshes every 150 ms
+  await page.getByTestId('nav-capture').click()
+  await expect.poll(() => page.evaluate(() => document.pointerLockElement?.tagName ?? null)).toBe('CANVAS')
+  const [yaw] = ((await page.getByTestId('walk-hud').getAttribute('data-walk-look')) ?? '0,0').split(',').map(Number)
+  const turn = Math.atan2(Math.sin(yaw), Math.cos(yaw)) / 0.0022 // look rate at sensitivity 1 (useNavInput)
+  await page.mouse.move(720, 450)
+  for (let i = 1; i <= 10; i++) await page.mouse.move(720 + (turn * i) / 10, 450)
+  await page.waitForTimeout(300)
+  await page.evaluate(() => document.exitPointerLock())
+  const [after] = ((await page.getByTestId('walk-hud').getAttribute('data-walk-look')) ?? '0,0').split(',').map(Number)
+  expect(Math.cos(after)).toBeGreaterThan(0.98)
+}
+
 test.describe('editor: first-person walkthrough', () => {
   test.beforeEach(async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'keyboard walkthrough is desktop; touch is covered below')
@@ -34,14 +49,17 @@ test.describe('editor: first-person walkthrough', () => {
   })
 
   test('walls and furniture block movement; you cannot leave through a window', async ({ page }) => {
-    // strafe west from the hall: the bedroom wall (x = 3.8) has no door here
+    // walk up the hall past the bedroom door (x = 3.8, y 7.1–8.0), then strafe west into plain wall
+    await hold(page, 'w', 900)
+    expect((await pos(page)).y).toBeLessThan(6.8)
     await hold(page, 'a', 2000)
     const p1 = await pos(page)
     expect(p1.x).toBeGreaterThan(3.8 + 0.06 + 0.24)
     await expect(room(page)).toHaveText('Hall')
-    // go to the living room and walk north into the exterior wall (with windows)
+    // go to the living room, turn to face north and walk into the exterior wall (with windows)
     await page.getByRole('button', { name: 'Go to room' }).click()
     await page.getByRole('menuitem', { name: 'Living & dining' }).click()
+    await faceNorth(page)
     await hold(page, 'w', 3500)
     const p2 = await pos(page)
     expect(p2.y).toBeGreaterThan(0.125 + 0.24)

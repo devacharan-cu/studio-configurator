@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { addOpening } from '../../../src/engine/commands/elements'
 import { wallFrame } from '../../../src/engine/model/query'
 import { compactHome } from '../../../src/engine/templates'
-import { bestHeading, blocked, buildColliders, clearDistance, currentRoom, moveWithCollisions, roomCentres, spawnPoint } from '../../../src/engine/walk'
+import { arrivalHeading, roomEntries, bestHeading, blocked, buildColliders, clearDistance, currentRoom, moveWithCollisions, roomCentres, SIGHT_ITEM_HEIGHT, spawnPoint } from '../../../src/engine/walk'
 import { fitDistance, presetPose } from '../../../src/editor/scene/framing'
 import { approach, keyIntent } from '../../../src/editor/scene/walkInput'
+import { isQuality } from '../../../src/editor/scene/quality'
 import { blankWithRooms, err, levelOf, ok } from './helpers'
 
 const R = 0.25
@@ -88,6 +89,47 @@ describe('walkthrough navigation', () => {
       expect(view).toBeGreaterThan(1)
     }
   })
+
+  it('"go to room" stands you just inside the main entrance of the room, facing into it', () => {
+    const col = buildColliders(p, level)
+    for (const e of roomEntries(p, level)) {
+      const room = Object.values(p.rooms).find((r) => r.id === e.id)!
+      expect(currentRoom(p, level, e.at)?.id, e.name).toBe(room.id)
+      expect(blocked(e.at, R, col), e.name).toBe(false)
+      // facing the room: a step ahead is still inside it, and the centre is in front, not behind
+      const dir = { x: -Math.sin(e.yaw), y: -Math.cos(e.yaw) }
+      expect(currentRoom(p, level, { x: e.at.x + dir.x * 1.0, y: e.at.y + dir.y * 1.0 })?.id, e.name).toBe(room.id)
+    }
+    const kitchen = roomEntries(p, level).find((e) => e.name === 'Kitchen')!
+    // the kitchen's widest opening is the 2 m passage from the living room (x = 6.2): enter facing east
+    expect(kitchen.at.x).toBeGreaterThan(6.2)
+    expect(kitchen.at.x).toBeLessThan(7.6)
+    expect(-Math.sin(kitchen.yaw)).toBeGreaterThan(0.7)
+  })
+
+  it('arriving in a room looks across that room (over low furniture), not out through its door', () => {
+    const sight = buildColliders(p, level, SIGHT_ITEM_HEIGHT)
+    for (const r of roomCentres(p, level)) {
+      const room = currentRoom(p, level, r.at)!
+      const yaw = arrivalHeading(p, level, r.at, sight)
+      const dir = { x: -Math.sin(yaw), y: -Math.cos(yaw) }
+      // the whole sight line stays in the arrival room
+      const inRoom = (q: { x: number; y: number }) => currentRoom(p, level, q)?.id === room.id
+      const view = clearDistance(r.at, dir, 0.08, sight, 12, 0.1, inRoom)
+      expect(view, r.name).toBeGreaterThan(1.5)
+    }
+    // in a plain rectangular room you look across it, not into a corner (the longest single ray)
+    const box = blankWithRooms([0, 0, 5, 4])
+    const lv = levelOf(box)
+    const at = { x: 1, y: 2 }
+    const across = arrivalHeading(box, lv, at)
+    expect(-Math.sin(across)).toBeGreaterThan(0.9) // looking east, along the room
+    // the bedroom arrival point is beside the bed: the view goes over the bed, not into the hall
+    const bed = roomCentres(p, level).find((r) => r.name === 'Bedroom')!
+    const yaw = arrivalHeading(p, level, bed.at, sight)
+    const ahead = { x: bed.at.x - Math.sin(yaw) * 1.5, y: bed.at.y - Math.cos(yaw) * 1.5 }
+    expect(currentRoom(p, level, ahead)?.name).toBe('Bedroom')
+  })
 })
 
 describe('camera input and framing', () => {
@@ -131,5 +173,12 @@ describe('camera input and framing', () => {
         expect(Math.max(maxX, maxY), `${preset} @ ${aspect} fills the view`).toBeGreaterThan(0.8)
       }
     expect(fitDistance(5, 0.5)).toBeGreaterThan(fitDistance(5, 1.8))
+  })
+})
+
+describe('viewer settings from storage', () => {
+  it('accept only the three quality levels (storage is untrusted)', () => {
+    for (const q of ['performance', 'balanced', 'quality']) expect(isQuality(q)).toBe(true)
+    for (const bad of ['constructor', '__proto__', 'toString', 'ultra', '', 1, null, undefined, {}]) expect(isQuality(bad)).toBe(false)
   })
 })

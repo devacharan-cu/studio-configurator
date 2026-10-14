@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { bestHeading, buildColliders, currentRoom, moveWithCollisions, spawnPoint } from '../../engine/walk'
+import { arrivalHeading, buildColliders, currentRoom, moveWithCollisions, SIGHT_ITEM_HEIGHT, spawnPoint } from '../../engine/walk'
 import { useEditor, useProject } from '../store'
 import { useNavInput } from './useNavInput'
 import { approach, keyIntent, walkInput } from './walkInput'
@@ -32,8 +32,7 @@ export function Walkthrough() {
   const getThree = useThree((s) => s.get)
   const lv = project.levels[level]
   const colliders = useMemo(() => buildColliders(project, level), [project, level])
-  /** Arrival views look into the home, not out through an open front door. */
-  const indoors = (q: { x: number; y: number }) => !!currentRoom(project, level, q)
+  const sight = useMemo(() => buildColliders(project, level, SIGHT_ITEM_HEIGHT), [project, level])
   useNavInput()
 
   const state = useRef({ x: 0, y: 0, yaw: 0, pitch: -0.04, vx: 0, vy: 0, t: 0, from: new THREE.Vector3(), fromQ: new THREE.Quaternion(), fromFov: 45, lastHud: 0 })
@@ -45,7 +44,7 @@ export function Walkthrough() {
     const q = moveWithCollisions(start, { x: 0, y: 0 }, RADIUS, colliders)
     s.x = q.x
     s.y = q.y
-    s.yaw = bestHeading(q, RADIUS, colliders, indoors)
+    s.yaw = arrivalHeading(project, level, q, sight)
     s.pitch = -0.04
     s.vx = s.vy = 0
     s.t = 0
@@ -55,7 +54,7 @@ export function Walkthrough() {
     s.fromFov = camera.fov
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Teleport ("go to room"): arrive facing into the room.
+  // Teleport ("go to room"): arrive at the room's entrance, facing in.
   useEffect(() => {
     if (!goto) return
     const s = state.current
@@ -63,7 +62,7 @@ export function Walkthrough() {
     s.x = q.x
     s.y = q.y
     s.vx = s.vy = 0
-    s.yaw = bestHeading(q, RADIUS, colliders, indoors)
+    s.yaw = goto.yaw ?? arrivalHeading(project, level, q, sight)
     s.pitch = -0.04
   }, [goto, colliders]) // eslint-disable-line react-hooks/exhaustive-deps
 

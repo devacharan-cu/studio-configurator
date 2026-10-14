@@ -140,3 +140,53 @@ Now:
 - **A full wall** is refused with "No free space on this wall …".
 - **Validation is unchanged:** moving an opening onto another is still rejected.
 - **Notices with identical text** replace one another instead of stacking.
+
+## D14 — The sun is a light, not part of the sky image
+
+The Meadow 2 HDRI holds 72% of its energy in the sun disc. Image-based light has no occlusion, so
+with the sun left in, every surface indoors was lit by it through solid walls and roof.
+
+Instead:
+- the lighting copy of the HDRI has the sun clamped to the surrounding sky;
+- one shadow-casting directional light stands in for it, pointed along the direction measured from the
+  HDRI (azimuth 36°, elevation 27°), so sunlight enters only through windows and doors;
+- indoors, sky light is turned down (environment intensity 1 → 0.28) and the fill becomes a warm
+  hemisphere light (bounce from floors and walls) instead of blue sky above and green lawn below.
+
+**Rejected:**
+- *Light probes / irradiance volumes:* they need a baked grid that every wall edit invalidates.
+- *SSAO or SSGI post-processing:* SSAO caused frame spikes in Phase 1 (D7), and three.js has SSGI only
+  in the experimental WebGPU renderer (D11).
+
+## D15 — No baked lighting while the building is editable
+
+Evaluated:
+- three.js `ProgressiveLightMap` (accumulates soft shadows into a lightmap over many frames);
+- drei `AccumulativeShadows` and `BakeShadows`;
+- an offline bake (Blender) of the template homes.
+
+All of them assume static geometry with a non-overlapping lightmap UV atlas. Here, walls, rooms,
+openings and furniture change on every edit, and wall UVs are in metres for tiling textures, not an
+atlas. A bake would be invalid after the first edit and would need a re-unwrap and re-bake each time
+(seconds to minutes).
+
+Real-time shadows from one sun (soft PCF) plus skirting and contact shadows give the grounding we can
+afford. A one-off "presentation bake" of a finished design remains a possible later feature.
+
+## D16 — Quality levels change only measured costs
+
+On the integrated GPU, frame time is driven by pixel count: going from 1× to 1.5× resolution doubled
+it. The sun shadow costs about 4 ms; one room light about 0.
+
+| Level | Resolution | Sun shadow | Room lights | Sky |
+|---|---|---|---|---|
+| Performance | 1× | 1024, light blur | off | 2K |
+| Balanced (default) | up to 1.25× | 2048, soft | on | 2K |
+| Quality | up to 2× | 4096, soft | on | 4K |
+
+**Room lights.** There is one real light, which follows the camera into the room it is in; every room
+still shows its ceiling fixture. Six point lights added 20–30 ms per frame over one (16.8 → 37.5 and 45.9 ms, two runs at the same
+resolution), because three.js' forward renderer shades every light on every pixel. A light count that never changes also avoids
+recompiling shaders when switching modes.
+
+The level is kept per viewer, with the navigation settings, not in the project.

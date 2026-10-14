@@ -75,7 +75,8 @@ exported and imported as JSON.
 | | |
 |---|---|
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | model, invariants, commands, geometry, sync, rendering, walkthrough, persistence |
-| [DECISIONS.md](docs/DECISIONS.md) | D1–D10 with the alternatives rejected |
+| [DECISIONS.md](docs/DECISIONS.md) | D1–D16 with the alternatives rejected |
+| [ASSETS.md](docs/ASSETS.md) | asset register: source, author, licence and processing |
 | [RESEARCH.md](docs/RESEARCH.md) | sources and what they changed (Phase 1 and this milestone) |
 | [TESTING.md](docs/TESTING.md) | test layers, results, performance measurements, what is not verified |
 | [SECURITY.md](docs/SECURITY.md) | checks, review notes, residual risks |
@@ -85,7 +86,8 @@ exported and imported as JSON.
 
 Furniture and texture sources are listed per asset in `src/engine/assets/catalog.ts`, which records
 the licence, attribution and source URL.
-- **Poly Haven models and textures:** CC0.
+- **Poly Haven models, textures and HDRIs:** CC0. The environment and site files are listed with
+  authors and processing in [docs/ASSETS.md](docs/ASSETS.md).
 - **"Glam Velvet Sofa":** © 2021 Wayfair LLC, model by Eric Chadwick (Khronos glTF Sample Assets),
   **CC BY 4.0, attribution required.**
 - **Kitchen, bed, wardrobe, bath, vanity, WC, desk, rug and the Arlo sofa:** modelled in code. They are

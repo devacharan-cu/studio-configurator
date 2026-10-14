@@ -267,3 +267,75 @@ screenshots inspected, and ranked by user impact:
 
 **Commit:** `3e08119`, pushed to `origin/feature/immersive-home-experience` (new branch, normal push, no
 force), authored by `devacharan-cu <devacharan@gmail.com>`, no co-author trailer.
+
+## P2-M2 — Real-time rendering quality
+
+**What changed:**
+- **Site and sky** (`scene/Site.tsx`, `scene/sky.ts`):
+  - a real CC0 HDRI ("Meadow 2") as the background and image-based light;
+  - its sun replaced by a matching shadow-casting light (D14);
+  - a lawn that fades into the horizon, a paved terrace and a path from the front door;
+  - a flat gravel roof with a rendered fascia in walk and fly;
+  - indoor fill switches from sky/lawn to a warm bounce;
+  - one room light follows the camera, and every room has a ceiling fixture (D16).
+- **Architectural detail:**
+  - skirting stopped at doors (`skirtingRuns`);
+  - window frames, mullions, glass, an external sill and an internal board;
+  - door/passage linings and architraves on both faces;
+  - door leaves with lever handles; a dark front door;
+  - textured plaster ceilings.
+  - Engine geometry is in `engine/geometry/site.ts` (`skirtingRuns`, `roofPlan`, `entrances`), pure
+    and unit-tested.
+- **Quality levels** (`scene/quality.ts`, `ui/QualityPicker.tsx`): Performance / Balanced / Quality
+  in the Views menu and the walkthrough settings, kept per viewer (D16).
+- **Arrival:**
+  - the walkthrough starts inside the front door;
+  - "Go to room" stands you just inside each room's main entrance, facing in (`roomEntries`);
+  - rooms with no door use the widest in-room field of view over low furniture (`arrivalHeading`).
+- **Assets** (all CC0, Poly Haven, listed in the new `docs/ASSETS.md` with authors and processing):
+  - Meadow 2 HDRI: sun clamped for lighting; tone-mapped 2K/4K backgrounds;
+  - Grass Ground, Rectangular Paving and Gravel Floor 03 textures.
+- **Docs:** D14–D16, RESEARCH M2, ARCHITECTURE rendering and arrival, TESTING, SECURITY, README.
+
+**Defects found in this milestone and fixed at the cause:**
+
+| # | Defect | Cause | Fix |
+|---|---|---|---|
+| 1 | Interiors lit through solid walls (first sky pass) | Image-based light has no occlusion, and 72% of the HDRI's energy is the sun | Sun clamped out of the lighting copy and made a real shadowed light (D14) |
+| 2 | Olive-green ceilings indoors | Downward faces lit by the HDRI's green lawn and a green hemisphere ground colour | Indoors: sky light down to 0.28, neutral warm bounce |
+| 3 | Room fixtures floating over the cut-away | Fixtures mounted in every mode | Visible only with ceilings (walk/fly) |
+| 4 | Black roof | Dark gravel texture × grey tint | White tint, so the gravel shows its own mid-grey |
+| 5 | Six room lights pushed walking to 30–45 ms per frame | Forward renderer shades every light on every pixel (measured +20–30 ms) | One light that follows the camera (D16) |
+| 6 | Balanced at 1.5× resolution was ~29 ms per frame | Fill rate: resolution dominates (isolated) | Balanced capped at 1.25×; Quality documented for dedicated GPUs |
+| 7 | Bedroom arrival faced the door at arm's length | The heading probe followed walkable space out through the doorway, and the bed blocked the probe | Probe sight lines within the room, over furniture below 1.4 m |
+| 8 | Kitchen arrival faced a corner | In a rectangle the longest single ray is the diagonal | Score the field of view, then present rooms from their entrance (`roomEntries`) |
+| 9 | Hall arrival stared into an open door leaf | Spawn at the hall's free centre | Start ~1 m inside the front door, like a visitor |
+| 10 | E2E "walls block movement" walked into the bedroom | The test assumed the old spawn and a north-facing arrival (the app was right) | Test walks past the door first and turns north with the mouse |
+| 11 | `isQuality` accepted prototype keys (`"constructor"`) from storage (diff review) | `in` checks the prototype chain | `Object.hasOwn`; unit test with hostile values |
+| 12 | Choosing Quality blanked the whole scene while the 4K sky loaded | The sky texture suspended the scene-wide Suspense boundary | The sky has its own boundary, with the cached 2K sky as its fallback |
+| 13 | E2E "library places furniture on a 3D floor" clicked mid-glide (first full run: 43 passed, 1 failed) | The test clicked ~0.1 s after closing the library while the untouched overview was still gliding back to fit (~1.5 s); heavier frames made the race visible | The test waits for the glide; the spec passed twice, then the full suite passed |
+
+**Browser validation (real interaction):**
+- **Dev and production builds, headless and headed Chromium on the real GPU:**
+  - split, 3D cut-away and full-height views;
+  - walkthrough from the front door, "Go to room" for all six rooms;
+  - free-camera street, garden and aerial viewpoints, plus inside each room;
+  - quality switching in both menus.
+- **Screenshots inspected for every iteration;** the final set is `docs/screenshots/editor/p2m2-*.jpg`.
+- **Console:** no errors. The only warning is three.js' own "THREE.Clock deprecated", which comes from
+  @react-three/fiber 9's internal clock, not our code.
+
+**Commands & results:** see TESTING "Phase 2 — M2" (unit 70/70; E2E **44 passed, 2 skipped** (device-specific), 0 failed, 7.0 min; performance table).
+`npm audit` 0; Semgrep 0 findings, 78 files; Gitleaks no leaks in `src`, `public`, `docs`, `tests` or the
+history; dev handles absent from `dist/`.
+
+**Known limitations after M2:**
+- **Lighting:**
+  - No ambient occlusion or bounced light: corners and contact areas are lit evenly apart from the sun
+    shadow (D7, D15).
+  - Only the current room's light is real; other rooms show lit fixtures without light.
+- **Reflections:** mirrors and glass reflect the outdoor HDRI, not the room (no reflection probes).
+- **Site:** the lawn texture repeats visibly from high above; the terrace is a rectangle around the
+  bounding box, not the footprint.
+- **Code-modelled pieces** (kitchen, bed, wardrobe, bath, desk) are still simple shapes: that is M3.
+- **Hardware:** measured on one integrated GPU only.

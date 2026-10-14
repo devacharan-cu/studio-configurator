@@ -1,5 +1,70 @@
 # Testing record
 
+## Phase 2 — M2 rendering (2026-10-14)
+
+| Command | Result |
+|---|---|
+| `npx tsc -b` / `npx oxlint` | pass / 0 warnings |
+| `npx vitest run` | 70/70 (new `site.test.ts`: skirting, roof coverage incl. an L-plan, entrances; navigation: room entries, in-room arrival over low furniture, no corner-facing arrival, quality values from storage) |
+| `npx playwright test` | **44 passed, 2 skipped** (device-specific), 0 failed, 7.0 min |
+
+**New E2E `rendering.spec.ts`:**
+- The sky and lighting files load from our origin.
+- **Street view** (canvas pixels): sky above (blue clearly exceeds red) and lawn below (green clearly
+  exceeds blue).
+- **Aerial view:** a neutral-grey roof where the rooms used to be visible.
+- The walkthrough starts about 1 m inside the front door, facing north.
+- **Quality levels** at device pixel ratio 2: the canvas renders at 1×, 1.25× or 2×; Quality fetches the
+  4K sky; the choice survives a reload and is not stored in the project; it can be changed from the
+  walkthrough settings too.
+
+**Performance.** Measured headed on a Radeon 610M (integrated) on the production build, with the mouse
+dragging in orbit and walking/flying with mouse look. Median/p95 frame times in ms:
+
+| Screen | Level | Orbit | Walk | Fly |
+|---|---|---|---|---|
+| 1× | Performance | 12.5 / 12.6 | 12.5 / 16.7 | 8.3 / 12.5 |
+| 1× | Balanced | 8.4 / 12.6 | 12.5 / 16.7 | 12.4 / 12.6 |
+| 1× | Quality | 16.7 / 20.9 | 16.8 / 25.1 | 16.6 / 16.8 |
+| 1.5× | Performance | 8.4 / 12.5 | 8.3 / 12.5 | 8.4 / 12.6 |
+| 1.5× | Balanced | 12.5 / 16.7 | 12.5 / 16.8 | 4.2 / 20.8 |
+| 1.5× | Quality | 29.2 / 33.4 | 20.9 / 29.2 | 25.0 / 29.3 |
+
+- 0 frames over 50 ms except a single one in Quality at 1.5×.
+- Values snap to multiples of the panel's ~4.2 ms refresh interval, and run-to-run noise is about one
+  interval.
+- Load: about 1.3–1.6 s to a lit scene; 6.7 MB transferred on a cold cache (7.8 MB with the 4K sky).
+- Draw calls (dev build, Balanced): orbit 446, walk 245–306, fly 216–392; about 0.2–0.4 M triangles;
+  14 shader programs.
+
+**Cost isolation** (dev build, walking, headed): resolution dominates. 1× → 1.5× doubles the frame
+time even with shadows, lights and background off. The sun shadow costs ~4 ms. One room light costs
+~0; six cost 20–30 ms more (D16).
+
+**Visual inspection** (screenshots `docs/screenshots/editor/p2m2-*.jpg`):
+- split and 3D views on the site;
+- full height and cut-away;
+- the front-door arrival;
+- living room, kitchen and study entries;
+- sun through the study window;
+- street, aerial (roof) and garden views.
+
+**Defects found by inspection and fixed:**
+- arrival through a doorway or into a corner;
+- olive ceilings from green ground bounce indoors;
+- fixtures floating in the cut-away;
+- a black roof (tint);
+- six point lights' cost.
+
+All are described in AUDIT_LOG P2-M2.
+
+**Not verified:**
+- other GPUs (only one integrated GPU was measured);
+- Firefox/Safari rendering;
+- shadow acne on unusual wall angles (the templates are orthogonal).
+
+---
+
 ## Phase 2 — M1 navigation (2026-10-13)
 
 | Command | Result |

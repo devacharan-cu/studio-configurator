@@ -5,6 +5,7 @@ import { parseProject, serializeProject } from '../engine/model/project'
 import type { Id, Project } from '../engine/model/types'
 import { compactHome } from '../engine/templates'
 import type { ViewPreset } from './scene/framing'
+import { isQuality, type Quality } from './scene/quality'
 
 export type Tool = 'select' | 'room' | 'door' | 'window' | 'passage' | 'place'
 export type SelectionKind = 'wall' | 'room' | 'opening' | 'item' | 'node'
@@ -26,8 +27,10 @@ export interface NavSettings {
   /** Free-camera speed in m/s (Shift multiplies, wheel adjusts). */
   flySpeed: number
   invertY: boolean
+  /** Rendering quality level (see scene/quality.ts). */
+  quality: Quality
 }
-export const DEFAULT_NAV: NavSettings = { look: 1, walkSpeed: 1.4, flySpeed: 3, invertY: false }
+export const DEFAULT_NAV: NavSettings = { look: 1, walkSpeed: 1.4, flySpeed: 3, invertY: false, quality: 'balanced' }
 
 export interface Notice {
   id: number
@@ -52,7 +55,7 @@ interface EditorState {
   notices: Notice[]
   saveState: SaveState
   /** Walkthrough HUD state: the room the visitor is in, and teleport requests. */
-  walk: { room: string | null; goto: { x: number; y: number; nonce: number } | null; returnView: ViewMode }
+  walk: { room: string | null; goto: { x: number; y: number; yaw?: number; nonce: number } | null; returnView: ViewMode }
   /** Free-camera viewpoint requests (position + look direction), consumed by the fly controller. */
   flyTo: { pos: [number, number, number]; yaw: number; pitch: number; nonce: number } | null
   nav: NavSettings
@@ -84,7 +87,7 @@ interface EditorState {
   setPointerLocked: (on: boolean) => void
   requestView: (cmd: { kind: 'preset'; preset: ViewPreset } | { kind: 'selection' }) => void
   setWalkRoom: (name: string | null) => void
-  walkTo: (x: number, y: number) => void
+  walkTo: (x: number, y: number, yaw?: number) => void
   notify: (tone: Notice['tone'], text: string) => void
   dismiss: (id: number) => void
 }
@@ -103,6 +106,7 @@ function loadNav(): NavSettings {
       walkSpeed: clamp(raw.walkSpeed, 0.6, 3, DEFAULT_NAV.walkSpeed),
       flySpeed: clamp(raw.flySpeed, 0.5, 20, DEFAULT_NAV.flySpeed),
       invertY: raw.invertY === true,
+      quality: isQuality(raw.quality) ? raw.quality : DEFAULT_NAV.quality,
     }
   } catch {
     return DEFAULT_NAV
@@ -229,7 +233,7 @@ export const useEditor = create<EditorState>()((set, get) => {
     setWalkRoom: (room) => {
       if (get().walk.room !== room) set((s) => ({ walk: { ...s.walk, room } }))
     },
-    walkTo: (x, y) => set((s) => ({ walk: { ...s.walk, goto: { x, y, nonce: (s.walk.goto?.nonce ?? 0) + 1 } } })),
+    walkTo: (x, y, yaw) => set((s) => ({ walk: { ...s.walk, goto: { x, y, yaw, nonce: (s.walk.goto?.nonce ?? 0) + 1 } } })),
     notify: (tone, text) => {
       const id = ++noticeSeq
       // The same message twice (e.g. repeated clicks) replaces the earlier copy instead of stacking.

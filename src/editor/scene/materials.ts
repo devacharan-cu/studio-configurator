@@ -94,16 +94,17 @@ export function useFloorMaterials() {
 export const MATS = {
   trim: new THREE.MeshStandardMaterial({ color: '#f1ede6', roughness: 0.85 }),
   wallTop: new THREE.MeshStandardMaterial({ color: '#3a3430', roughness: 0.9 }),
-  frame: new THREE.MeshStandardMaterial({ color: '#2a2725', roughness: 0.45, metalness: 0.5 }),
+  frame: new THREE.MeshStandardMaterial({ color: '#2e2b28', roughness: 0.4, metalness: 0.6 }),
   oak: new THREE.MeshStandardMaterial({ color: '#c9ab88', roughness: 0.6 }),
   walnut: new THREE.MeshStandardMaterial({ color: '#5d4231', roughness: 0.5 }),
-  door: new THREE.MeshStandardMaterial({ color: '#efebe4', roughness: 0.6 }),
-  glass: new THREE.MeshPhysicalMaterial({ color: '#dfe9ea', roughness: 0.05, metalness: 0, transmission: 0, transparent: true, opacity: 0.22 }),
+  door: new THREE.MeshStandardMaterial({ color: '#f0ece5', roughness: 0.55 }),
+  frontDoor: new THREE.MeshStandardMaterial({ color: '#5a4636', roughness: 0.5 }),
+  sill: new THREE.MeshStandardMaterial({ color: '#d9d3c7', roughness: 0.7 }),
+  // no transmission pass (it re-renders the scene): a thin, reflective, partly transparent pane instead
+  glass: new THREE.MeshPhysicalMaterial({ color: '#d4e1e3', roughness: 0.03, metalness: 0, ior: 1.5, specularIntensity: 1, envMapIntensity: 1.6, transparent: true, opacity: 0.28, depthWrite: false }),
   ceramic: new THREE.MeshStandardMaterial({ color: '#f6f5f2', roughness: 0.25 }),
   steel: new THREE.MeshStandardMaterial({ color: '#b9b9b6', roughness: 0.3, metalness: 0.9 }),
   counter: new THREE.MeshStandardMaterial({ color: '#e8e3da', roughness: 0.35 }),
   cabinet: new THREE.MeshStandardMaterial({ color: '#56604f', roughness: 0.55 }),
-  ceiling: new THREE.MeshStandardMaterial({ color: '#f4f1ec', roughness: 1 }),
-  ground: new THREE.MeshStandardMaterial({ color: '#d9d4c8', roughness: 1 }),
   selection: new THREE.MeshBasicMaterial({ color: '#c0623c', transparent: true, opacity: 0.35, depthWrite: false }),
 }

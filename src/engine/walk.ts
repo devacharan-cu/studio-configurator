@@ -1,8 +1,10 @@
 import { getAsset } from './assets/catalog'
 import { itemCorners, roomAt } from './commands/structure'
-import { interiorPoint, strictlyInside } from './geometry/polygon'
-import { add, closestOnSegment, norm, scale, sub, type V2 } from './geometry/vec'
-import { openingsOnWall, roomPolygon, wallFrame } from './model/query'
+import { interiorPoint, signedArea, strictlyInside } from './geometry/polygon'
+import { entrances } from './geometry/site'
+import { add, closestOnSegment, len, norm, perp, scale, sub, type V2 } from './geometry/vec'
+import { openingCenter } from './geometry/walls'
+import { openingsOnWall, roomPolygon, wallBetween, wallFrame } from './model/query'
 import type { Id, Project } from './model/types'
 
 /**
@@ -26,7 +28,11 @@ export interface Colliders {
   boxes: Box[]
 }
 
-export function buildColliders(p: Project, level: Id): Colliders {
+/**
+ * Walls (with door/passage gaps) and furniture taller than `minItemHeight`. The walker uses 25 cm (you can't
+ * step over a sofa); sight lines use eye-level obstacles only (you can see over a bed).
+ */
+export function buildColliders(p: Project, level: Id, minItemHeight = 0.25): Colliders {
   const capsules: Capsule[] = []
   for (const w of Object.values(p.walls)) {
     if (w.level !== level) continue
@@ -42,7 +48,7 @@ export function buildColliders(p: Project, level: Id): Colliders {
     if (cursor < length) capsules.push({ a: add(a, scale(dir, cursor)), b: add(a, scale(dir, length)), r: w.thickness / 2, wall: w.id })
   }
   const boxes: Box[] = Object.values(p.items)
-    .filter((it) => it.level === level && !getAsset(it.asset)?.walkable && (getAsset(it.asset)?.footprint.h ?? 0) > 0.25)
+    .filter((it) => it.level === level && !getAsset(it.asset)?.walkable && (getAsset(it.asset)?.footprint.h ?? 0) > minItemHeight)
     .map((it) => ({ corners: itemCorners(it), item: it.id }))
   return { capsules, boxes }
 }
@@ -99,11 +105,20 @@ export function moveWithCollisions(from: V2, delta: V2, r: number, c: Colliders)
   return pos
 }
 
-/** A good place to start a walkthrough: inside the hall (entrance) if there is one. */
+/**
+ * Where a walkthrough starts: just inside the front door, as a visitor arrives; otherwise in the hall
+ * (or the first room) at a free spot.
+ */
 export function spawnPoint(p: Project, level: Id): V2 | null {
+  const c = buildColliders(p, level)
+  const front = entrances(p, level)[0]
+  if (front) {
+    const q = { x: front.at.x - front.outward.x * 0.95, y: front.at.y - front.outward.y * 0.95 }
+    if (currentRoom(p, level, q) && !blocked(q, 0.25, c)) return q
+  }
   const rooms = Object.values(p.rooms).filter((r) => r.level === level)
   const room = rooms.find((r) => r.type === 'hall') ?? rooms[0]
-  return room ? walkablePoint(roomPolygon(p, room), buildColliders(p, level)) : null
+  return room ? walkablePoint(roomPolygon(p, room), c) : null
 }
 
 /**
@@ -164,14 +179,81 @@ export function clearDistance(from: V2, dir: V2, r: number, c: Colliders, max = 
  * The most open direction from a point, as a walkthrough yaw (camera forward = plan (-sin yaw, -cos yaw)).
  * Used when entering a room so the visitor looks into it, not at the nearest wall or door leaf.
  */
-export function bestHeading(from: V2, r: number, c: Colliders, inside?: (q: V2) => boolean, samples = 24): number {
+export function bestHeading(from: V2, r: number, c: Colliders, inside?: (q: V2) => boolean, samples = 24, cone = 0): number {
+  const dist = (yaw: number) => clearDistance(from, { x: -Math.sin(yaw), y: -Math.cos(yaw) }, r, c, 12, 0.1, inside)
+  // with a cone, score the whole field of view (mean of 7 rays), not one ray: in a rectangular room the
+  // longest single ray is always the diagonal, which looks into a corner
+  const rays = cone > 0 ? [-1, -2 / 3, -1 / 3, 0, 1 / 3, 2 / 3, 1].map((k) => k * cone) : [0]
   let best = { yaw: 0, score: -1 }
   for (let i = 0; i < samples; i++) {
     const yaw = (i / samples) * Math.PI * 2
-    const dir = { x: -Math.sin(yaw), y: -Math.cos(yaw) }
     // prefer long, unobstructed views; a slight bias towards right angles reads as "looking down the room"
-    const score = clearDistance(from, dir, r, c, 12, 0.1, inside) * (i % (samples / 4) === 0 ? 1.04 : 1)
+    const score = (rays.reduce((s, d) => s + dist(yaw + d), 0) / rays.length) * (i % (samples / 4) === 0 ? 1.04 : 1)
     if (score > best.score) best = { yaw, score }
   }
   return best.yaw
+}
+
+/**
+ * Where to look on arriving in a room: the field of view that sees furthest *within that room*, past furniture
+ * below eye level (you see over a bed, not over a wardrobe). Probing walkable space instead sent the view
+ * out through the nearest doorway.
+ */
+export function arrivalHeading(p: Project, level: Id, q: V2, sight = buildColliders(p, level, SIGHT_ITEM_HEIGHT)): number {
+  const room = currentRoom(p, level, q)?.id
+  return bestHeading(q, SIGHT_RADIUS, sight, (x) => !!room && currentRoom(p, level, x)?.id === room, 24, VIEW_CONE)
+}
+/** Furniture taller than this blocks a standing person's view. */
+export const SIGHT_ITEM_HEIGHT = 1.4
+/** Sight lines are probed with a thin circle so table edges and chair backs don't hide a view. */
+const SIGHT_RADIUS = 0.08
+/** Half the walkthrough's horizontal field of view (~90°), radians. */
+const VIEW_CONE = (40 * Math.PI) / 180
+
+export interface RoomEntry {
+  id: Id
+  name: string
+  at: V2
+  /** Walkthrough yaw (camera forward = plan (−sin yaw, −cos yaw)). */
+  yaw: number
+}
+
+/**
+ * Where "go to room" puts the visitor: just inside the room's main entrance (its widest door or
+ * passage), turned towards the room's centre — the view you get walking in, the way architectural
+ * walkthroughs present a room. Rooms without a door fall back to a free point and the widest view.
+ */
+export function roomEntries(p: Project, level: Id): RoomEntry[] {
+  const c = buildColliders(p, level)
+  return Object.values(p.rooms)
+    .filter((r) => r.level === level)
+    .map((r) => {
+      const poly = roomPolygon(p, r)
+      const centre = interiorPoint(poly)
+      const ccw = signedArea(poly) > 0
+      let best: { width: number; centre: V2; inward: V2; half: number } | null = null
+      r.boundary.forEach((id, i) => {
+        const w = wallBetween(p, id, r.boundary[(i + 1) % r.boundary.length])
+        if (!w) return
+        const d = norm(sub(poly[(i + 1) % poly.length], poly[i]))
+        const inward = ccw ? perp(d) : scale(perp(d), -1)
+        for (const o of openingsOnWall(p, w.id)) {
+          if (o.kind === 'window' || (best && best.width >= o.width)) continue
+          best = { width: o.width, centre: openingCenter(p, o), inward, half: w.thickness / 2 }
+        }
+      })
+      const entry = best as { width: number; centre: V2; inward: V2; half: number } | null
+      if (entry) {
+        for (let step = 0.55; step < 2.5; step += 0.1) {
+          const q = add(entry.centre, scale(entry.inward, entry.half + step))
+          if (!strictlyInside(q, poly, 0.25) || blocked(q, 0.25, c)) continue
+          const toCentre = sub(centre, q)
+          const look = len(toCentre) > 0.3 ? norm(toCentre) : entry.inward
+          const dir = norm(add(entry.inward, look))
+          return { id: r.id, name: r.name, at: q, yaw: Math.atan2(-dir.x, -dir.y) }
+        }
+      }
+      const at = walkablePoint(poly, c)
+      return { id: r.id, name: r.name, at, yaw: arrivalHeading(p, level, at) }
+    })
 }

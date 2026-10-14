@@ -69,6 +69,7 @@ test.describe('editor: direct 3D editing → model → 2D', () => {
     await page.locator('[data-asset="plant-large"]').click()
     // close the panel (the placement tool stays armed) so the 3D canvas is back at the size its camera was framed for
     await page.getByRole('button', { name: 'Close library' }).click()
+    await page.waitForTimeout(1600) // the untouched overview glides back to fit the wider canvas (~1.5 s)
     const floor = await projectToScreen(page, p, [8.4, 0, 3.8]) // kitchen floor, clear of the island
     await page.mouse.click(floor.x, floor.y)
     let q = await saved(page)

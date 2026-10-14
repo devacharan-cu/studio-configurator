@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState, type PointerEvent as RPointerEvent, type 
 import { interiorPoint } from '../../engine/geometry/polygon'
 import { roomPolygon } from '../../engine/model/query'
 import type { Project } from '../../engine/model/types'
-import { roomCentres } from '../../engine/walk'
+import { roomEntries } from '../../engine/walk'
 import { planBounds } from '../scene/bounds'
 import { presetPose } from '../scene/framing'
 import { requestNavLock } from '../scene/useNavInput'
 import { walkInput } from '../scene/walkInput'
+import { QualityPicker } from './QualityPicker'
 import { DEFAULT_NAV, useEditor, useProject } from '../store'
 import { Icon } from './icons'
 
@@ -137,8 +138,9 @@ function SettingsMenu() {
             Invert vertical look
             <input type="checkbox" checked={nav.invertY} onChange={(e) => setNav({ invertY: e.target.checked })} className="accent-ink" />
           </label>
-          <button type="button" className="mt-1 w-full rounded-lg px-2 py-1.5 text-left text-[12px] text-mute hover:bg-linen" onClick={() => setNav(DEFAULT_NAV)}>
-            Reset to defaults
+          <QualityPicker />
+          <button type="button" className="mt-1 w-full rounded-lg px-2 py-1.5 text-left text-[12px] text-mute hover:bg-linen" onClick={() => setNav({ ...DEFAULT_NAV, quality: nav.quality })}>
+            Reset navigation
           </button>
         </div>
       )}
@@ -189,7 +191,7 @@ export function NavHud() {
   const fly = mode === 'fly'
   const [help, setHelp] = useState(true)
   const [fullscreen, setFullscreen] = useState(() => typeof document !== 'undefined' && !!document.fullscreenElement)
-  const rooms = useMemo(() => roomCentres(project, level), [project, level])
+  const rooms = useMemo(() => roomEntries(project, level), [project, level])
   const viewpoints = useMemo(() => (fly ? flyViewpoints(project, level) : []), [fly, project, level])
 
   useEffect(() => {
@@ -257,7 +259,7 @@ export function NavHud() {
                       role="menuitem"
                       className="block w-full rounded-lg px-2.5 py-1.5 text-left text-[12.5px] hover:bg-linen"
                       onClick={() => {
-                        walkTo(t.at.x, t.at.y)
+                        walkTo(t.at.x, t.at.y, t.yaw)
                         close()
                       }}
                     >

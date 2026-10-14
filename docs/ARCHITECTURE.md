@@ -110,9 +110,24 @@ match), migrates by version, and finally runs `validateProject`. Projects autosa
   height). Dragging a wall rebuilds only the walls whose junctions changed.
 - **Cut-away** lowers walls to 1.15 m for the overhead view by passing `displayHeight` into the same
   solid generator — the model's heights never change. Windows and frames are clipped to match.
-- **Lighting**: HDR environment + hemisphere + one shadow-casting sun fitted to the building bounds.
-  No post-processing (see D7). Per-item soft contact shadows ground furniture.
-- **Frame loop**: on-demand while editing (renders only on change); continuous during the walkthrough.
+- **Site and lighting (Phase 2 M2, `Site.tsx`, `sky.ts`, `quality.ts`)**:
+  - the sky is a real HDRI (Poly Haven "Meadow 2", CC0): a tone-mapped JPEG as the background and a
+    copy with the sun clamped out for image-based light;
+  - one shadow-casting sun along the HDRI's measured sun direction, with soft PCF shadows;
+  - a lawn that fades into the horizon, a paved terrace and a path from the front door
+    (`entrances()`);
+  - a flat gravel roof (`roofPlan()`) in walk and fly, so sunlight reaches rooms only through openings;
+  - indoors, sky light is turned down and a warm bounce fill takes over (D14);
+  - one room light follows the camera, and every room has a ceiling fixture (D16);
+  - no post-processing (D7) and no baking (D15); quality levels in D16.
+- **Architectural detail** (derived, never stored; `engine/geometry/site.ts`, `Building.tsx`):
+  - skirting along every inner wall face, stopped at doors and passages (`skirtingRuns()`);
+  - windows: slim frames, mullions, glass, an external sill and an internal board;
+  - doors and passages: linings and architraves on both faces;
+  - door leaves with lever handles on both sides;
+  - textured plaster ceilings.
+- Per-item soft contact shadows ground the furniture.
+- **Frame loop**: on-demand while editing (renders only on change); continuous in walk and fly.
 
 ## 3D editing
 
@@ -150,11 +165,13 @@ There are three camera modes, each a separate controller, rather than one contro
 - **Look** is yaw and pitch on an Euler YXZ with z = 0, so there is never roll. Yaw is unrestricted.
 - **Field of view** is 45° in orbit and 62° in walk/fly (about 90° horizontally on 16:10), eased on
   every mode change.
-- **Arrival** (`bestHeading`, `walkablePoint`):
-  - Entering the walkthrough, or using "go to room", places you at a free point inside the room
-    (rooms often have a table in the middle).
-  - You face the most open *indoor* direction, probed through the engine colliders and stopped at the
-    building edge, so you never arrive facing a wall, a door leaf or out of the front door.
+- **Arrival** (`spawnPoint`, `arrivalHeading`, `walkablePoint`):
+  - The walkthrough starts about 1 m inside the front door (the widest exterior door), like a visitor.
+  - On arriving in a room you look along its longest sight line *within that room*, over furniture
+    below 1.4 m (you can see over a bed, not a wardrobe). Probing walkable space instead sent the view
+    out through the nearest doorway.
+  - "Go to room" places you at a free point inside the room, nearest its centre (rooms often have a
+    table or bed in the middle).
 - **Transitions**:
   - Entering walk glides from the orbit camera in 0.8 s.
   - Fly starts exactly where the orbit camera was.

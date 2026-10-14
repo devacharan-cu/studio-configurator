@@ -96,3 +96,23 @@ export async function pixelDiff(page: Page, a: Buffer, b: Buffer): Promise<numbe
 
 export const nodeAt = (p: SavedProject, x: number, y: number) => Object.values(p.nodes).find((n) => Math.abs(n.x - x) < 1e-6 && Math.abs(n.y - y) < 1e-6)
 export const roomNamed = (p: SavedProject, name: string) => Object.values(p.rooms).find((r) => r.name === name)!
+
+/** Mean colour (0–255) of a region of a PNG, given as fractions of its width and height. */
+export async function regionColour(page: Page, png: Buffer, r: { x0: number; y0: number; x1: number; y1: number }) {
+  return page.evaluate(
+    async ([b64, r]) => {
+      const img = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob())
+      const c = new OffscreenCanvas(img.width, img.height)
+      const ctx = c.getContext('2d')!
+      ctx.drawImage(img, 0, 0)
+      const x = Math.floor(r.x0 * img.width)
+      const y = Math.floor(r.y0 * img.height)
+      const d = ctx.getImageData(x, y, Math.max(1, Math.floor((r.x1 - r.x0) * img.width)), Math.max(1, Math.floor((r.y1 - r.y0) * img.height))).data
+      const sum = [0, 0, 0]
+      for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) sum[k] += d[i + k]
+      const n = d.length / 4
+      return { r: sum[0] / n, g: sum[1] / n, b: sum[2] / n }
+    },
+    [png.toString('base64'), r] as const,
+  )
+}

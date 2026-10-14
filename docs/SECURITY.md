@@ -1,5 +1,26 @@
 # Security review
 
+## Phase 2 — M2 rendering (2026-10-14)
+
+| Check | Result |
+|---|---|
+| `npm audit` | 0 vulnerabilities (no new dependencies) |
+| Semgrep (same 5 rulesets) over `src`, `tests` | 0 findings, 78 files |
+| Gitleaks 8.30.1 over `src`, `public`, `docs`, `tests` and the full git history | no leaks |
+
+**New surfaces:**
+- **New static assets** (an HDRI, two sky JPEGs, three texture sets) are bundled and served from our
+  own origin, like every other asset. An E2E test still fails on any off-origin request, and the CSP is
+  unchanged.
+- **`quality`** joins the per-viewer navigation settings. It is validated against the three known
+  levels on read; anything else falls back to Balanced.
+  - The check uses own keys only: my first version used `v in QUALITY`, which accepts `"constructor"`
+    or `"toString"` from storage and would have handed the canvas a function as its pixel-ratio range.
+    Found in diff review; unit-tested.
+  - It is never written into the project file (E2E-checked).
+- **HDR parsing** uses three.js' own `HDRLoader`, and only on our bundled file. No user-supplied HDRs or
+  images are loaded.
+
 ## Phase 2 — M1 navigation (2026-10-13)
 
 | Check | Result |
