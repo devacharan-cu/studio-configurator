@@ -1,5 +1,27 @@
 # Progress
 
+## Phase 3 — house library, asset library, realism, product workflows
+
+Branch: `feature/house-library-and-assets`, created from `feature/immersive-home-experience` @ `0a89fc6`
+(verified equal to origin after `git fetch`; that branch holds the latest verified rendering milestone).
+The plan and backlog are in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md).
+
+| # | Milestone | Status | Commit | Evidence |
+|---|---|---|---|---|
+| P3-M0 | Baseline, audit, research, product roadmap | Done | (this commit) | tsc/lint/unit 70/70/build/audit re-run on `0a89fc6`; E2E 44 passed + 2 skips on identical code (P2-M2 run) |
+| P3-M1 | Template + asset architecture, gallery, asset browser, duplicate, item materials | Planned | | |
+| P3-M2 | Asset pipeline, ≥40 real models | Planned | | |
+| P3-M3 | Materials + interior realism | Planned | | |
+| P3-M4 | First batch of house templates | Planned | | |
+| P3-M5 | Multi-storey + templates to 10–15 | Planned | | |
+| P3-M6 | Variants, finish packages, presentation, still export | Planned | | |
+| P3-M7 | End-to-end review | Planned | | |
+
+**Next concrete task:** P3-M1. Add metadata to the template registry, build a house-spec builder,
+validate every template and asset in tests, then build the template gallery.
+
+---
+
 ## Phase 2 — immersive home experience
 
 Branch: `feature/immersive-home-experience`, created from `feature/building-engine` @ `262b47e` (verified

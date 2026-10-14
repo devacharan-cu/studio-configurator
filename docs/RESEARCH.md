@@ -89,3 +89,58 @@ AUDIT_LOG, Phase 2 tool audit), so documentation was fetched from the official s
 
 Post-processing (SSAO, bloom) was not re-evaluated, because D7's measurement still applies: it caused
 frame spikes on the target GPU.
+
+---
+
+# Research — Phase 3: house library, asset library, product strategy (2026-10-14)
+
+**Tools.** WebFetch and WebSearch on vendors' own pages, the Poly Haven public API, and the local
+three.js r186 source. Context7 and Firecrawl are not installed (Phase 2 tool audit), and I added
+neither: WebFetch covered every page needed.
+
+**Not inspected hands-on.** No competitor was used signed-in. `cedreo.com/features/` and
+`docs.ambientcg.com` failed DNS resolution from this environment. The findings below are vendor
+claims, not verified behaviour, unless marked as measured.
+
+## Products
+
+| # | Source | Observed (vendor's own page) | Implication for us |
+|---|---|---|---|
+| 1 | planner5d.com | 8,000+ catalogue items; 2D → 3D; 4K renders; 360° tour for clients; AI floor-plan recognition and AI interior design; shopping list with cost estimates; free start, paid tiers not shown | Consumer-scale catalogue; client tours are the norm |
+| 2 | floorplanner.com | 260,000+ models free to all users; renders up to 8K; real-time 3D; credits model (one-time or subscription); pages for real estate, retail/manufacturers, interior designers; API docs linked | Catalogue count is commoditised; the business model is credits per project |
+| 3 | coohom.com | 600,000+ models; render in ~10 s; free room templates; kitchen & closet design, kitchen planner, bathroom tool; AI layouts; business demo, brand model upload | Kitchen/cabinet tooling is a standard pro feature |
+| 4 | homestyler.com | "10 million" branded models; 500+ templates by style; AI 2D → editable 3D; cloud/video rendering, VR/AR; enterprise and real-estate solutions; ISO 27001 | Templates organised by style; security certification matters to enterprise buyers |
+| 5 | home.by.me | Community gallery by room and style; branded catalogue; 4K renders; pro pages for interior designers, enterprise and brands | Inspiration gallery by style and room |
+| 6 | cedreo.com | Builders: "draw a complete house in 2 hours"; catalogue of ready-to-use house and lot plans; site plans, sections, elevations, roof plans, area tables; automatic camera and sun; sales-presentation workflow; claims 50% faster sales closes (vendor claim, unverified) | The closest builder-sales competitor: a plan catalogue plus fast presentation |
+| 7 | chiefarchitect.com/products | Premier $1,995/yr or $229/mo; automatic roofs, stairs, framing; cabinet catalogues; materials lists; ray-traced and 360° renders; video walkthroughs; construction documents | The professional ceiling: price anchor and depth of tooling |
+| 8 | higharc.com | Builder platform: Studio (design), Config (configure market-proven plans), Showroom (buyer options), Photoreal, Estimate, permit-ready docs; buyer selections update estimates and marketing assets; named US builders | Strongest evidence that plan variants + buyer options + one data model is what builders pay for |
+| 9 | zondahome.com digital solutions (search results + vendor pages) | Envision: buyers choose finishes from 225+ manufacturer brands and preview structural options; Drees replaced handwritten notes and spreadsheets for selections across nine cities; Zonda acquired Alpha Vision and BDX | Developer/builder "options and selections" is a proven paid workflow (US) |
+| 10 | three.js r186 source (local) | `Reflector` (planar mirror, one extra scene render per mirror); `LightProbeGenerator`; `ProgressiveLightMap` (static only, needs lightmap UVs); PCF with radius | Options for mirrors and indirect light, with known costs |
+
+**Patterns worth adopting:**
+1. Templates organised by type and style, with real previews and key numbers (bedrooms, area).
+2. A curated catalogue grouped by room and category, with search and thumbnails.
+3. A client presentation mode separate from editing.
+4. Options/variants and finish packages (Higharc Config/Showroom, Zonda Envision).
+5. Automatic site and lighting setup (Cedreo).
+
+**Unresolved:**
+- Indian developer workflows and pricing (no primary research yet; see PRODUCT_ROADMAP §5).
+- Whether "10 million models" means unique models.
+- Which competitor features are real-time versus offline render.
+
+## Asset sources (licence verified)
+
+| Source | Licence (verified) | Use |
+|---|---|---|
+| Poly Haven models/textures/HDRIs | CC0, "effectively public domain"; commercial use and redistribution allowed; attribution not required (polyhaven.com/license). API ToS: free for any purpose; requires a unique user-agent; the "Powered by Poly Haven" credit applies only to live API use, not to self-hosted CC0 downloads | Primary source. ~85 furniture, ~29 lighting, ~57 plant and ~76 decorative models listed by the API on 2026-10-14 |
+| Khronos glTF-Sample-Assets | Per asset (the sofa is CC BY 4.0, attribution required) | Already used |
+| Kenney / Quaternius | CC0, but low-poly stylised | Rejected for realism |
+| Sketchfab (CC-BY models) | Per model; download needs an account | Not used: no account here, and per-model review is needed |
+| ambientCG | CC0 per its public statements; licence page not reachable from here | Not used until the licence page can be read |
+
+**Gap.** No verified CC0 source has realistic **kitchen cabinetry, refrigerators, sanitaryware or beds
+in contemporary style**. Poly Haven's only bed is gothic. Cabinetry in professional tools is parametric
+anyway (Chief Architect, Coohom), so kitchen runs, islands, wardrobes, beds and bathroom fixtures will
+be **parametric code-modelled assets of good quality**. They are labelled as such and counted
+separately from third-party models.

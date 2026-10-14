@@ -342,3 +342,62 @@ history; dev handles absent from `dist/`.
 
 **Commit:** `2412408`, pushed to `origin/feature/immersive-home-experience` (fast-forward from `52bbb9d`,
 normal push, no force), authored by `devacharan-cu <devacharan@gmail.com>`, no co-author trailer.
+
+## P3-M0 — Baseline, audit, research and roadmap (2026-10-14)
+
+**Repository state:**
+- After `git fetch`, the remote heads are `feature/building-engine` @ `262b47e` and
+  `feature/immersive-home-experience` @ `0a89fc6`.
+- The latter holds P2-M2 (`2412408`) and its records commit. Author and committer on both are
+  `devacharan-cu <devacharan@gmail.com>`.
+- The local branch equalled origin. New branch `feature/house-library-and-assets` was created from it.
+
+**Baseline checks on `0a89fc6`:**
+
+| Check | Result |
+|---|---|
+| tsc / oxlint / build | pass / 0 / pass |
+| vitest | 70/70 |
+| `npm audit` | 0 |
+| Playwright | Not re-run: the last full run (44 passed, 2 skipped, 0 failed) was on identical code an hour earlier (P2-M2 gate) |
+
+**Inventory:**
+- **Templates:** 1 house (`compact-home`, 6 rooms) plus a blank project. They are defined as code that
+  calls engine commands (good: validated), but there is no metadata (style, bedrooms, area), no
+  thumbnails and no gallery, just a menu list.
+- **Assets:** 26 catalogue entries, of which 15 are glTF (14 distinct third-party files; the velvet
+  sofa uses a variant) and 10 are code-modelled. The 3 kitchen and 3 bathroom pieces, the bed, the
+  wardrobe and the desk are block-like.
+- **Library UI:** a text list with a footprint-rectangle icon and a search box, but no thumbnails,
+  loading states or recents.
+- **Item operations:** add, move, rotate, replace, delete, undo/redo, save. No duplicate. `variant`
+  exists in the schema but there is no UI for item materials.
+- **Finishes:** 4 floor, 4 wall, 1 exterior.
+- **Multi-storey:** `levels` and `addLevel` exist in the schema and engine, but there is no level UI,
+  no stairs, no slab openings, and the walkthrough is single-level.
+- **Known visual gaps** (from the P2-M2 report): a visibly tiled lawn, a rectangular terrace, mirrors
+  reflecting the sky, no AO/GI.
+
+**Ranked gaps:**
+1. Templates (1 → 10–15).
+2. Real models (14 → ≥40).
+3. Asset browser without previews.
+4. Block-like kitchen, bathroom and bedroom pieces.
+5. No multi-storey.
+6. No variants or presentation for developers.
+7. Site realism.
+
+Full backlog with acceptance criteria: PRODUCT_ROADMAP §3.
+
+**Research:**
+- RESEARCH.md "Phase 3": 9 products plus the three.js source, asset licences verified on
+  Poly Haven's licence and API ToS pages.
+- Two sources were unreachable (DNS) and are recorded as such.
+
+**Tool audit:**
+- Available: Playwright, WebFetch/WebSearch, Claude in Chrome, Semgrep, Gitleaks, npm audit, and
+  `@gltf-transform/cli` (installed earlier in the session scratchpad, not a project dependency).
+- Context7 and Firecrawl are not installed and were not needed.
+
+**Roadmap:** PRODUCT_ROADMAP.md, covering the capability matrix, ranked backlog, milestone sequence
+and an honest commercial-readiness section with a validation plan (no customers exist yet).
