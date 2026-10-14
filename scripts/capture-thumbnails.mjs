@@ -67,6 +67,9 @@ async function templates(browser) {
     await page.locator(`[data-template="${id}"]`).click()
     await page.getByRole('button', { name: 'Create a project from this design' }).click()
     await page.locator('[aria-label=View] button').nth(2).click() // 3D only
+    // multi-storey houses: show the top floor cut away, standing on the floors below
+    const floors = page.getByRole('radiogroup', { name: 'Floor' }).getByRole('radio')
+    if ((await floors.count()) > 1) await floors.first().click()
     await page.waitForTimeout(4500) // models, textures, camera glide
     const png = await page.getByTestId('scene-view').locator('canvas').screenshot()
     const url = await page.evaluate(async (b64) => {

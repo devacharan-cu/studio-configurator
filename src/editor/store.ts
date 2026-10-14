@@ -8,7 +8,7 @@ import type { ViewPreset } from './scene/framing'
 import { isQuality, type Quality } from './scene/quality'
 
 export type Tool = 'select' | 'room' | 'door' | 'window' | 'passage' | 'place'
-export type SelectionKind = 'wall' | 'room' | 'opening' | 'item' | 'node'
+export type SelectionKind = 'wall' | 'room' | 'opening' | 'item' | 'node' | 'stair'
 export interface Selection {
   kind: SelectionKind
   id: Id
@@ -55,7 +55,13 @@ interface EditorState {
   notices: Notice[]
   saveState: SaveState
   /** Walkthrough HUD state: the room the visitor is in, and teleport requests. */
-  walk: { room: string | null; goto: { x: number; y: number; yaw?: number; nonce: number } | null; returnView: ViewMode }
+  walk: {
+    room: string | null
+    goto: { x: number; y: number; yaw?: number; level?: Id; nonce: number } | null
+    returnView: ViewMode
+    /** Floors whose furniture is drawn while walking: your own, plus the next floor when you're near (or on) the stairs to it. */
+    furnished: Id[] | null
+  }
   /** Free-camera viewpoint requests (position + look direction), consumed by the fly controller. */
   flyTo: { pos: [number, number, number]; yaw: number; pitch: number; nonce: number } | null
   nav: NavSettings
@@ -87,7 +93,10 @@ interface EditorState {
   setPointerLocked: (on: boolean) => void
   requestView: (cmd: { kind: 'preset'; preset: ViewPreset } | { kind: 'selection' }) => void
   setWalkRoom: (name: string | null) => void
-  walkTo: (x: number, y: number, yaw?: number) => void
+  setWalkFurnished: (levels: Id[]) => void
+  walkTo: (x: number, y: number, yaw?: number, level?: Id) => void
+  /** Switch the floor being edited (and shown on top in the 3D view). */
+  setLevel: (level: Id) => void
   notify: (tone: Notice['tone'], text: string) => void
   dismiss: (id: number) => void
 }
@@ -128,7 +137,25 @@ function initialProject(): { project: Project; message?: string } {
   return { project: compactHome() }
 }
 
-const firstLevel = (p: Project) => Object.values(p.levels).sort((a, b) => a.elevation - b.elevation)[0]?.id ?? ''
+/** The floor a selected entity is on. */
+export function selectionLevel(p: Project, s: Selection): Id | undefined {
+  switch (s.kind) {
+    case 'wall':
+      return p.walls[s.id]?.level
+    case 'room':
+      return p.rooms[s.id]?.level
+    case 'item':
+      return p.items[s.id]?.level
+    case 'node':
+      return p.nodes[s.id]?.level
+    case 'stair':
+      return p.stairs?.[s.id]?.level
+    case 'opening':
+      return p.walls[p.openings[s.id]?.wall]?.level
+  }
+}
+
+export const firstLevel = (p: Project) => Object.values(p.levels).sort((a, b) => a.elevation - b.elevation)[0]?.id ?? ''
 
 export const useEditor = create<EditorState>()((set, get) => {
   const init = initialProject()
@@ -148,7 +175,7 @@ export const useEditor = create<EditorState>()((set, get) => {
     cutaway: true,
     notices: [],
     saveState: 'saved',
-    walk: { room: null, goto: null, returnView: 'split' },
+    walk: { room: null, goto: null, returnView: 'split', furnished: null },
     flyTo: null,
     nav: loadNav(),
     pointerLocked: false,
@@ -160,6 +187,7 @@ export const useEditor = create<EditorState>()((set, get) => {
         return false
       }
       set((s) => ({ history: commit(s.history, result.project, result.label), preview: null, previewError: null }))
+      validateSelection()
       for (const w of result.warnings) get().notify('info', w)
       return true
     },
@@ -208,12 +236,12 @@ export const useEditor = create<EditorState>()((set, get) => {
       const { view, camera, walk } = get()
       // switching fly → walk keeps the original editor view to return to
       const returnView = camera === 'orbit' ? view : walk.returnView
-      set({ camera: 'walk', view: '3d', preview: null, tool: 'select', placeAsset: null, walk: { room: null, goto: null, returnView } })
+      set({ camera: 'walk', view: '3d', preview: null, tool: 'select', placeAsset: null, walk: { room: null, goto: null, returnView, furnished: null } })
     },
     enterFly: () => {
       const { view, camera, walk } = get()
       const returnView = camera === 'orbit' ? view : walk.returnView
-      set({ camera: 'fly', view: '3d', preview: null, tool: 'select', placeAsset: null, flyTo: null, walk: { room: null, goto: null, returnView } })
+      set({ camera: 'fly', view: '3d', preview: null, tool: 'select', placeAsset: null, flyTo: null, walk: { room: null, goto: null, returnView, furnished: null } })
     },
     exitWalk: () => set((s) => ({ camera: 'orbit', view: s.walk.returnView, pointerLocked: false })),
     flyToView: (pos, yaw, pitch) => set((s) => ({ flyTo: { pos, yaw, pitch, nonce: (s.flyTo?.nonce ?? 0) + 1 } })),
@@ -233,7 +261,18 @@ export const useEditor = create<EditorState>()((set, get) => {
     setWalkRoom: (room) => {
       if (get().walk.room !== room) set((s) => ({ walk: { ...s.walk, room } }))
     },
-    walkTo: (x, y, yaw) => set((s) => ({ walk: { ...s.walk, goto: { x, y, yaw, nonce: (s.walk.goto?.nonce ?? 0) + 1 } } })),
+    setWalkFurnished: (levels) => {
+      const cur = get().walk.furnished
+      if (!cur || cur.length !== levels.length || cur.some((l, i) => l !== levels[i])) set((s) => ({ walk: { ...s.walk, furnished: levels } }))
+    },
+    walkTo: (x, y, yaw, level) => set((s) => ({ walk: { ...s.walk, goto: { x, y, yaw, level, nonce: (s.walk.goto?.nonce ?? 0) + 1 } } })),
+    setLevel: (level) => {
+      const s = get()
+      if (s.level === level || !s.history.present.levels[level]) return
+      // a selection on another floor can't be edited from this one
+      const sel = s.selection && selectionLevel(s.history.present, s.selection)
+      set({ level, selection: sel && sel !== level ? null : s.selection, preview: null })
+    },
     notify: (tone, text) => {
       const id = ++noticeSeq
       // The same message twice (e.g. repeated clicks) replaces the earlier copy instead of stacking.
@@ -244,7 +283,9 @@ export const useEditor = create<EditorState>()((set, get) => {
   }
 
   function validateSelection() {
-    const { selection, history } = get()
+    const { selection, history, level } = get()
+    // undoing "add floor" (or redoing "remove floor") takes away the floor being edited
+    if (!history.present.levels[level]) set({ level: firstLevel(history.present) })
     if (!selection) return
     const p = history.present
     const exists =
@@ -252,7 +293,8 @@ export const useEditor = create<EditorState>()((set, get) => {
       (selection.kind === 'room' && p.rooms[selection.id]) ||
       (selection.kind === 'opening' && p.openings[selection.id]) ||
       (selection.kind === 'item' && p.items[selection.id]) ||
-      (selection.kind === 'node' && p.nodes[selection.id])
+      (selection.kind === 'node' && p.nodes[selection.id]) ||
+      (selection.kind === 'stair' && p.stairs?.[selection.id])
     if (!exists) set({ selection: null })
   }
 })

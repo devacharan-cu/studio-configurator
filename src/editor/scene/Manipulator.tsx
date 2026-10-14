@@ -3,6 +3,7 @@ import { useEffect, type MutableRefObject } from 'react'
 import * as THREE from 'three'
 import { getAsset } from '../../engine/assets/catalog'
 import { moveItem, moveOpening } from '../../engine/commands/elements'
+import { updateStair } from '../../engine/commands/stairs'
 import { moveWall } from '../../engine/commands/structure'
 import { openingCenter } from '../../engine/geometry/walls'
 import { wallFrame } from '../../engine/model/query'
@@ -19,7 +20,7 @@ export interface DragState {
   moved: boolean
 }
 
-const LABELS = { wall: 'Move wall', opening: 'Move opening', item: 'Move item' } as const
+const LABELS = { wall: 'Move wall', opening: 'Move opening', item: 'Move item', stair: 'Move stairs' } as const
 
 /**
  * Direct manipulation in 3D. Pointer rays are intersected with a horizontal plane through the grab
@@ -68,6 +69,9 @@ export function Manipulator({ drag }: { drag: MutableRefObject<DragState | null>
       } else if (s.kind === 'item') {
         const it = d.base.items[s.id]
         st.setPreview(moveItem(d.base, { item: s.id, x: snapLength(it.x + dx), y: snapLength(it.y + dz) }))
+      } else if (s.kind === 'stair' && d.base.stairs?.[s.id]) {
+        const sr = d.base.stairs[s.id]
+        st.setPreview(updateStair(d.base, { stair: s.id, x: snapLength(sr.x + dx), y: snapLength(sr.y + dz) }))
       }
       invalidate()
     }

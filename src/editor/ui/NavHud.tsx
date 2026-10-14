@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type PointerEvent as RPointerEvent, type ReactNode } from 'react'
 import { interiorPoint } from '../../engine/geometry/polygon'
-import { roomPolygon } from '../../engine/model/query'
+import { roomPolygon, sortedLevels } from '../../engine/model/query'
 import type { Project } from '../../engine/model/types'
 import { roomEntries } from '../../engine/walk'
 import { planBounds } from '../scene/bounds'
@@ -149,13 +149,16 @@ function SettingsMenu() {
 }
 
 /** Viewpoints for the free camera: aerial, street-level elevations and a high corner inside each room. */
-function flyViewpoints(p: Project, level: string) {
-  const b = planBounds(p, level)
+function flyViewpoints(p: Project) {
+  const b = planBounds(p)
+  const levels = sortedLevels(p)
+  const top = levels[levels.length - 1]
+  const height = top ? top.elevation + top.height : 2.7
   const toLook = (from: [number, number, number], to: [number, number, number]) => {
     const d = [to[0] - from[0], to[1] - from[1], to[2] - from[2]]
     return { yaw: Math.atan2(-d[0], -d[2]), pitch: Math.atan2(d[1], Math.hypot(d[0], d[2])) }
   }
-  const aerial = presetPose(b, 2.7, 1.6, 'overview')
+  const aerial = presetPose(b, height, 1.6, 'overview')
   const cx = (b.x0 + b.x1) / 2
   const cz = (b.y0 + b.y1) / 2
   const views: { id: string; name: string; pos: [number, number, number]; yaw: number; pitch: number }[] = [
@@ -163,14 +166,15 @@ function flyViewpoints(p: Project, level: string) {
     { id: 'front', name: 'Street view (front)', pos: [cx, 1.7, b.y1 + 7], ...toLook([cx, 1.7, b.y1 + 7], [cx, 1.6, cz]) },
     { id: 'back', name: 'Garden view (back)', pos: [cx, 1.7, b.y0 - 7], ...toLook([cx, 1.7, b.y0 - 7], [cx, 1.6, cz]) },
   ]
-  for (const r of Object.values(p.rooms).filter((r) => r.level === level)) {
+  for (const r of levels.flatMap((l) => Object.values(p.rooms).filter((r) => r.level === l.id))) {
+    const y0 = p.levels[r.level].elevation
     const poly = roomPolygon(p, r)
     const c = interiorPoint(poly)
     // a high viewpoint 30 cm in from the corner farthest from the room's interior point
     const far = poly.reduce((a, q) => (Math.hypot(q.x - c.x, q.y - c.y) > Math.hypot(a.x - c.x, a.y - c.y) ? q : a), poly[0])
     const L = Math.hypot(far.x - c.x, far.y - c.y) || 1
-    const pos: [number, number, number] = [far.x + ((c.x - far.x) / L) * 0.45, 2.2, far.y + ((c.y - far.y) / L) * 0.45]
-    views.push({ id: r.id, name: `Inside: ${r.name}`, pos, ...toLook(pos, [c.x, 0.8, c.y]) })
+    const pos: [number, number, number] = [far.x + ((c.x - far.x) / L) * 0.45, y0 + 2.2, far.y + ((c.y - far.y) / L) * 0.45]
+    views.push({ id: r.id, name: `Inside: ${r.name}`, pos, ...toLook(pos, [c.x, y0 + 0.8, c.y]) })
   }
   return views
 }
@@ -183,7 +187,6 @@ function flyViewpoints(p: Project, level: string) {
  */
 export function NavHud() {
   const project = useProject()
-  const level = useEditor((s) => s.level)
   const mode = useEditor((s) => s.camera)
   const room = useEditor((s) => s.walk.room)
   const locked = useEditor((s) => s.pointerLocked)
@@ -191,8 +194,9 @@ export function NavHud() {
   const fly = mode === 'fly'
   const [help, setHelp] = useState(true)
   const [fullscreen, setFullscreen] = useState(() => typeof document !== 'undefined' && !!document.fullscreenElement)
-  const rooms = useMemo(() => roomEntries(project, level), [project, level])
-  const viewpoints = useMemo(() => (fly ? flyViewpoints(project, level) : []), [fly, project, level])
+  // every room on every floor, grouped by floor when there is more than one
+  const floors = useMemo(() => sortedLevels(project).map((l) => ({ level: l, rooms: roomEntries(project, l.id) })), [project])
+  const viewpoints = useMemo(() => (fly ? flyViewpoints(project) : []), [fly, project])
 
   useEffect(() => {
     const on = () => setFullscreen(!!document.fullscreenElement)
@@ -251,20 +255,27 @@ export function NavHud() {
         ) : (
           <Popover label="Go to room" icon="layers">
             {(close) => (
-              <ul role="menu">
-                {rooms.map((t) => (
-                  <li key={t.id}>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="block w-full rounded-lg px-2.5 py-1.5 text-left text-[12.5px] hover:bg-linen"
-                      onClick={() => {
-                        walkTo(t.at.x, t.at.y, t.yaw)
-                        close()
-                      }}
-                    >
-                      {t.name}
-                    </button>
+              <ul role="menu" className="max-h-[60vh] overflow-y-auto">
+                {floors.map(({ level: l, rooms }) => (
+                  <li key={l.id} role="none">
+                    {floors.length > 1 && <p className="eyebrow px-2.5 pt-1.5 pb-0.5">{l.name}</p>}
+                    <ul role="none">
+                      {rooms.map((t) => (
+                        <li key={t.id} role="none">
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="block w-full rounded-lg px-2.5 py-1.5 text-left text-[12.5px] hover:bg-linen"
+                            onClick={() => {
+                              walkTo(t.at.x, t.at.y, t.yaw, l.id)
+                              close()
+                            }}
+                          >
+                            {t.name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   </li>
                 ))}
               </ul>

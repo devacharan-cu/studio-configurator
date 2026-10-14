@@ -4,7 +4,8 @@ import { interiorPoint, signedArea, strictlyInside } from './geometry/polygon'
 import { entrances } from './geometry/site'
 import { add, closestOnSegment, len, norm, perp, scale, sub, type V2 } from './geometry/vec'
 import { openingCenter } from './geometry/walls'
-import { openingsOnWall, roomPolygon, wallBetween, wallFrame } from './model/query'
+import { openingsOnWall, roomPolygon, sortedLevels, wallBetween, wallFrame } from './model/query'
+import { levelAbove, stairGeometry, stairHeightAt, stairLocal, stairsOf, type StairGeometry } from './model/stairs'
 import type { Id, Project } from './model/types'
 
 /**
@@ -54,7 +55,116 @@ export function buildColliders(p: Project, level: Id, minItemHeight = 0.25): Col
       return it.level === level && !!a && !a.walkable && a.mount !== 'ceiling' && !(it.z && it.z > 0.25) && a.footprint.h > minItemHeight
     })
     .map((it) => ({ corners: itemCorners(it), item: it.id }))
+  // Stairs: from below you can only step onto a flight at its foot; from above the stairwell is guarded
+  // on every side except the arrival edge.
+  for (const s of stairsOf(p)) {
+    const g = stairGeometry(p, s)
+    const [bl, br, tr, tl] = g.corners
+    const rail = (a: V2, b: V2) => capsules.push({ a, b, r: STAIR_RAIL, wall: s.id })
+    if (s.level === level) {
+      rail(bl, tl)
+      rail(br, tr)
+      rail(tl, tr)
+    } else if (g.to?.id === level) {
+      rail(bl, tl)
+      rail(br, tr)
+      rail(bl, br)
+    }
+  }
   return { capsules, boxes }
+}
+
+/** Half-thickness of a stair's side rail or balustrade as a collider, metres. */
+const STAIR_RAIL = 0.04
+
+/** While on a flight, only its two sides constrain you. */
+function flightColliders(g: StairGeometry): Colliders {
+  const [bl, br, tr, tl] = g.corners
+  return {
+    capsules: [
+      { a: bl, b: tl, r: STAIR_RAIL, wall: g.stair.id },
+      { a: br, b: tr, r: STAIR_RAIL, wall: g.stair.id },
+    ],
+    boxes: [],
+  }
+}
+
+/** Per-floor colliders for one project version, built on first use. */
+export function colliderCache(p: Project, minItemHeight = 0.25): (level: Id) => Colliders {
+  const cache = new Map<Id, Colliders>()
+  return (level) => {
+    let c = cache.get(level)
+    if (!c) cache.set(level, (c = buildColliders(p, level, minItemHeight)))
+    return c
+  }
+}
+
+/** Where a walker is: a level, and the flight of stairs they are on (if any). */
+export interface WalkPos {
+  x: number
+  y: number
+  level: Id
+  stair: Id | null
+}
+
+/**
+ * One movement step across a multi-storey building. On a floor, the level's colliders apply; stepping
+ * into a flight (only possible at its foot from below, or at its head from above) puts you on the stairs;
+ * walking off either end lands you on that floor. `colliders` caches per-level colliders.
+ */
+export function walkStep(p: Project, at: WalkPos, delta: V2, r: number, colliders: (level: Id) => Colliders): WalkPos {
+  if (at.stair && p.stairs?.[at.stair]) {
+    const g = stairGeometry(p, p.stairs[at.stair])
+    const q = moveWithCollisions(at, delta, r, flightColliders(g))
+    const { u } = stairLocal(g, q)
+    if (u < 0) return { ...q, level: g.from.id, stair: null }
+    if (u > g.stair.length && g.to) return { ...q, level: g.to.id, stair: null }
+    // the HUD and the plan follow the floor you're closer to
+    return { ...q, level: u > g.stair.length / 2 && g.to ? g.to.id : g.from.id, stair: g.stair.id }
+  }
+  const q = moveWithCollisions(at, delta, r, colliders(at.level))
+  for (const s of stairsOf(p)) {
+    if (s.level !== at.level && levelAbove(p, s.level)?.id !== at.level) continue
+    const g = stairGeometry(p, s)
+    const { u, v } = stairLocal(g, q)
+    if (u > 0 && u < s.length && Math.abs(v) < s.width / 2) return { ...q, level: at.level, stair: s.id }
+  }
+  return { ...q, level: at.level, stair: null }
+}
+
+/**
+ * Floors whose furniture a walker can see: their own, and the floor at the other end of a flight they are
+ * on or within `near` metres of (seen through the stairwell). Other floors' furniture is hidden in the
+ * walkthrough — it is out of sight and costs draw calls (measured: P3-M5).
+ */
+export function furnishedLevels(p: Project, at: WalkPos, near = 4): Id[] {
+  const out = new Set([at.level])
+  for (const s of stairsOf(p)) {
+    const g = stairGeometry(p, s)
+    if (!g.to) continue
+    if (at.stair === s.id) {
+      out.add(g.from.id).add(g.to.id)
+      continue
+    }
+    if (at.level !== g.from.id && at.level !== g.to.id) continue
+    const { u, v } = stairLocal(g, at)
+    const du = Math.max(0, -u, u - s.length)
+    const dv = Math.max(0, Math.abs(v) - s.width / 2)
+    if (Math.hypot(du, dv) < near) out.add(at.level === g.from.id ? g.to.id : g.from.id)
+  }
+  return sortedLevels(p)
+    .map((l) => l.id)
+    .filter((l) => out.has(l))
+}
+
+/** Height of the floor (or stair surface) under a walker. */
+export function walkFloor(p: Project, at: WalkPos): number {
+  const s = at.stair ? p.stairs?.[at.stair] : undefined
+  if (s) {
+    const g = stairGeometry(p, s)
+    return g.from.elevation + stairHeightAt(g, at)
+  }
+  return p.levels[at.level]?.elevation ?? 0
 }
 
 /** Push a circle (centre q, radius r) out of every collider. Iterates so corners resolve cleanly. */

@@ -118,19 +118,40 @@ export function entrances(p: Project, level: Id): Entrance[] {
   // a way into the house: a door with a room on one side and nothing at all on the other (a door onto
   // a balcony or courtyard leads to a parapet or the house again, not to the street)
   const sides = wallSides(p)
-  const out: Entrance[] = []
-  for (const w of wallsOnLevel(p, level)) {
+  const walls = wallsOnLevel(p, level)
+  // …unless that open-air room is a porch: a verandah or terrace with its own way out (steps through its
+  // parapet), so the door onto it is still the front door
+  const porches = new Set<Id>()
+  for (const w of walls) {
     const s = sides[w.id] ?? {}
-    if (!!s.left === !!s.right) continue
-    if (isOutdoor(p.rooms[(s.left ?? s.right)!])) continue
+    const only = s.left && !s.right ? s.left : s.right && !s.left ? s.right : undefined
+    if (only && isOutdoor(p.rooms[only]) && openingsOnWall(p, w.id).some((o) => o.kind !== 'window')) porches.add(only)
+  }
+  const direct: Entrance[] = []
+  const viaPorch: Entrance[] = []
+  for (const w of walls) {
+    const s = sides[w.id] ?? {}
     const { a, dir, normal } = wallFrame(p, w)
-    const outward = s.left ? scale(normal, -1) : normal
+    let outward: V2
+    let list: Entrance[]
+    if (!!s.left !== !!s.right) {
+      if (isOutdoor(p.rooms[(s.left ?? s.right)!])) continue
+      outward = s.left ? scale(normal, -1) : normal
+      list = direct
+    } else if (s.left && s.right && isOutdoor(p.rooms[s.left]) !== isOutdoor(p.rooms[s.right])) {
+      const porch = isOutdoor(p.rooms[s.left]) ? s.left : s.right
+      if (!porches.has(porch)) continue
+      // the room on the wall's left lies along +normal
+      outward = porch === s.left ? normal : scale(normal, -1)
+      list = viaPorch
+    } else continue
     for (const o of openingsOnWall(p, w.id)) {
       if (o.kind !== 'door') continue
-      out.push({ at: add(add(a, scale(dir, o.offset)), scale(outward, w.thickness / 2)), outward, width: o.width })
+      list.push({ at: add(add(a, scale(dir, o.offset)), scale(outward, w.thickness / 2)), outward, width: o.width })
     }
   }
-  return out.sort((x, y) => y.width - x.width)
+  const byWidth = (x: Entrance, y: Entrance) => y.width - x.width
+  return [...direct.sort(byWidth), ...viaPorch.sort(byWidth)]
 }
 
 /** Length of a skirting run (for tests and metrics). */

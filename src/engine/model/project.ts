@@ -66,14 +66,15 @@ const ProjectV1 = z
         .strict(),
     ),
     items: rec(z.object({ id, level: id, asset: text(60), x: num, y: num, rotation: num, variant: text(40).optional(), z: z.number().finite().gte(0).lte(4).optional() }).strict()),
+    stairs: rec(z.object({ id, level: id, x: num, y: num, rotation: num, width: num, length: num }).strict()).optional(),
     facade: text(40).optional(),
     meta: z.object({ createdAt: text(40), updatedAt: text(40), template: text(40).optional() }).strict(),
   })
   .strict()
   .superRefine((p, ctx) => {
     // Record keys must match the ids inside them (no aliasing tricks).
-    for (const key of ['levels', 'nodes', 'walls', 'rooms', 'openings', 'items'] as const) {
-      for (const [k, v] of Object.entries(p[key])) if (k !== (v as { id: string }).id) ctx.addIssue({ code: 'custom', message: `${key}.${k} id mismatch` })
+    for (const key of ['levels', 'nodes', 'walls', 'rooms', 'openings', 'items', 'stairs'] as const) {
+      for (const [k, v] of Object.entries(p[key] ?? {})) if (k !== (v as { id: string }).id) ctx.addIssue({ code: 'custom', message: `${key}.${k} id mismatch` })
     }
   })
 

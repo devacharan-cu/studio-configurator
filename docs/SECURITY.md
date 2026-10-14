@@ -1,5 +1,20 @@
 # Security review
 
+## Phase 3 — M5 (2026-10-15)
+
+| Check | Result |
+|---|---|
+| `npm audit` | 0 vulnerabilities (no new dependencies) |
+| Semgrep (5 rulesets) over `src`, `tests`, `scripts` | 0 findings |
+| Gitleaks over `src`, `scripts`, `public`, `docs` | no leaks |
+
+**New input surface: `stairs` in saved and imported projects.**
+- It is parsed by the same strict schema: `.strict()` objects, bounded numbers, id-pattern keys,
+  record keys must match ids, and the prototype-pollution key check.
+- It is then checked by the stair validation rules before the project is accepted.
+- A file with stairs on a level that has no floor above, or with an unsafe going, is refused with a
+  message, never half-loaded.
+
 ## Phase 3 — M4 (2026-10-15)
 
 | Check | Result |

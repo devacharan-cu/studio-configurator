@@ -5,15 +5,17 @@ import * as THREE from 'three'
 import { getAsset } from '../../engine/assets/catalog'
 import { addItem, addOpening } from '../../engine/commands/elements'
 import { itemCorners } from '../../engine/commands/structure'
-import { wallFrame } from '../../engine/model/query'
+import { sortedLevels, wallFrame } from '../../engine/model/query'
 import { snapLength } from '../plan/snap'
 import type { Project } from '../../engine/model/types'
 import { planBounds } from './bounds'
-import { useEditor, useProject, type Selection } from '../store'
+import { selectionLevel, useEditor, useProject, type Selection } from '../store'
+import { stairGeometry } from '../../engine/model/stairs'
 import { Building, type PickHandlers } from './Building'
 import { Items } from './Items'
 import { preloadAsset } from './preload'
 import { Site } from './Site'
+import { Stairs } from './Stairs'
 import { preloadSky } from './sky'
 import { preloadSurfaces } from './fixtures/surfaces'
 import { preloadProjectFinishes } from './materials'
@@ -55,8 +57,14 @@ function selectionSphere(p: Project, sel: Selection): { center: [number, number,
     const h = getAsset(it.asset)?.footprint.h ?? 1
     for (const c of itemCorners(it)) pts.push([c.x, 0, c.y], [c.x, h, c.y])
   }
+  if (sel.kind === 'stair' && p.stairs?.[sel.id]) {
+    const g = stairGeometry(p, p.stairs[sel.id])
+    for (const c of g.corners) pts.push([c.x, 0, c.y], [c.x, g.rise, c.y])
+  }
   if (!pts.length) return null
-  const box = new THREE.Box3().setFromPoints(pts.map((q) => new THREE.Vector3(...q)))
+  // everything above is relative to its own floor
+  const base = p.levels[selectionLevel(p, sel) ?? '']?.elevation ?? 0
+  const box = new THREE.Box3().setFromPoints(pts.map((q) => new THREE.Vector3(q[0], q[1] + base, q[2])))
   const sphere = box.getBoundingSphere(new THREE.Sphere())
   return { center: sphere.center.toArray() as [number, number, number], radius: sphere.radius }
 }
@@ -80,7 +88,8 @@ function OrbitRig({ frameKey }: { frameKey: number }) {
     const c = ref.current
     if (!c) return
     const p = useEditor.getState().history.present
-    const pose = presetPose(planBounds(p, level), wallHeight(p, level), aspect(), preset)
+    // frame everything on show: the floor being edited and the floors below it
+    const pose = presetPose(planBounds(p), (p.levels[level]?.elevation ?? 0) + wallHeight(p, level), aspect(), preset)
     c.setLookAt(...pose.position, ...pose.target, smooth)
     autoPose = preset === 'overview' ? new THREE.Vector3(...pose.position) : null
   }
@@ -153,6 +162,7 @@ function SceneContent({ frameKey }: { frameKey: number }) {
   const level = useEditor((s) => s.level)
   const camera = useEditor((s) => s.camera)
   const cutaway = useEditor((s) => s.cutaway)
+  const furnished = useEditor((s) => s.walk.furnished)
   const quality = useEditor((s) => s.nav.quality)
   const invalidate = useThree((s) => s.invalidate)
   const drag = useRef<DragState | null>(null)
@@ -182,6 +192,9 @@ function SceneContent({ frameKey }: { frameKey: number }) {
         const st = useEditor.getState()
         if (st.camera !== 'orbit' || e.button !== 0) return
         const p = st.history.present
+        // Only the floor being edited responds; a click on a floor below passes on (stairs answer from both ends).
+        const on = s.kind === 'stair' && p.stairs?.[s.id] ? [p.stairs[s.id].level, stairGeometry(p, p.stairs[s.id]).to?.id] : [selectionLevel(p, s)]
+        if (!on.includes(st.level)) return
         // Tools work in 3D too: openings on the clicked wall, furniture at the clicked floor point.
         if ((st.tool === 'door' || st.tool === 'window' || st.tool === 'passage') && s.kind === 'wall') {
           e.stopPropagation()
@@ -220,11 +233,29 @@ function SceneContent({ frameKey }: { frameKey: number }) {
   )
 
   const firstPerson = camera !== 'orbit'
+  // Walking and flying show the whole house; editing shows the floor being edited and those below it,
+  // with the floors above lifted off so you can see in.
+  const elevation = project.levels[level]?.elevation ?? 0
+  const shown = sortedLevels(project)
+    .filter((l) => firstPerson || l.elevation <= elevation)
+    .map((l) => l.id)
+  const shownKey = shown.join('|')
+  const shownSet = useMemo(() => new Set(shownKey.split('|')), [shownKey])
   return (
     <>
-      <Site project={project} level={level} firstPerson={firstPerson} quality={quality} />
-      <Building project={project} level={level} cutaway={!firstPerson && cutaway} ceilings={firstPerson} handlers={handlers} />
-      <Items project={project} level={level} handlers={handlers} />
+      <Site project={project} level={level} levels={shown} firstPerson={firstPerson} quality={quality} />
+      {shown.map((l) => (
+        <group key={l}>
+          {/* only the floor being edited is cut away; the ones below stand at full height under it */}
+          <Building project={project} level={l} cutaway={!firstPerson && cutaway && l === level} ceilings={firstPerson} handlers={handlers} />
+          {/* walking, furniture on floors out of sight (not your own, not up or down the nearest stairs) isn't drawn;
+              hidden rather than unmounted, so walking back in costs nothing */}
+          <group visible={camera !== 'walk' || !furnished || furnished.includes(l)}>
+            <Items project={project} level={l} handlers={handlers} />
+          </group>
+        </group>
+      ))}
+      <Stairs project={project} levels={shownSet} handlers={handlers} />
       {camera === 'walk' && <Walkthrough />}
       {camera === 'fly' && <FreeFly />}
       {camera === 'orbit' && <OrbitRig frameKey={frameKey} />}

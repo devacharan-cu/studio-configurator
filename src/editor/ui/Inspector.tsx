@@ -4,7 +4,9 @@ import { deleteItem, deleteOpening, duplicateItem, moveItem, moveOpening, replac
 import { deleteRoom, moveWall, setFacade, setRoomSize, updateRoom, updateWall } from '../../engine/commands/structure'
 import { wallSides } from '../../engine/geometry/walls'
 import { fmtArea, fmtLen, roomMetrics } from '../../engine/metrics'
-import { roomPolygon, wallFrame } from '../../engine/model/query'
+import { deleteStair, updateStair } from '../../engine/commands/stairs'
+import { roomPolygon, sortedLevels, wallFrame } from '../../engine/model/query'
+import { stairGeometry } from '../../engine/model/stairs'
 import { ROOM_TYPES, type Project, type RoomType } from '../../engine/model/types'
 import { useEditor, useProject } from '../store'
 import { Icon } from './icons'
@@ -258,6 +260,40 @@ function ItemInspector({ p, id }: { p: Project; id: string }) {
   )
 }
 
+function StairInspector({ p, id }: { p: Project; id: string }) {
+  const { run, select } = useEditor.getState()
+  const s = p.stairs![id]
+  const g = stairGeometry(p, s)
+  const turn = (by: number) => run(updateStair(p, { stair: id, rotation: Math.atan2(Math.sin(s.rotation + by), Math.cos(s.rotation + by)) }))
+  return (
+    <>
+      <Section title="Stairs">
+        <p className="text-[12.5px] text-ink-soft">
+          Straight flight from the {g.from.name.toLowerCase()} to the {g.to?.name.toLowerCase() ?? 'floor above'}
+        </p>
+        <Row label="Rise" value={fmtLen(g.rise)} />
+        <Row label="Steps" value={`${g.risers} × ${(g.riser * 100).toFixed(1)} cm`} testId="stair-steps" />
+        <Row label="Going (tread)" value={`${(g.going * 100).toFixed(1)} cm`} testId="stair-going" />
+        <Row label="Pitch" value={`${((Math.atan2(g.rise, s.length) * 180) / Math.PI).toFixed(0)}°`} />
+        <NumberField label="Width" value={s.width} step={0.05} testId="stair-width" onCommit={(v) => run(updateStair(p, { stair: id, width: v }))} />
+        <NumberField label="Length of flight" value={s.length} step={0.05} testId="stair-length" onCommit={(v) => run(updateStair(p, { stair: id, length: v }))} />
+        <div className="flex gap-1.5 pt-1">
+          <button type="button" className="btn-ghost h-8 flex-1 justify-center text-[12px]" onClick={() => turn(Math.PI / 2)} title="Rotate 90° (Q)">
+            <Icon name="rotate" size={15} /> Rotate 90°
+          </button>
+          <button type="button" className="btn-ghost h-8 flex-1 justify-center text-[12px]" onClick={() => turn(Math.PI)}>
+            Reverse
+          </button>
+        </div>
+        <p className="text-[11.5px] text-mute">Drag the stairs in the plan or the 3D view. Steps are worked out from the storey height; the going must stay between 22 and 36 cm.</p>
+      </Section>
+      <div className="px-4 py-3">
+        <DeleteButton label="Remove stairs" onClick={() => run(deleteStair(p, { stair: id })) && select(null)} />
+      </div>
+    </>
+  )
+}
+
 function ProjectSummary({ p }: { p: Project }) {
   const level = useEditor((s) => s.level)
   const select = useEditor((s) => s.select)
@@ -265,7 +301,7 @@ function ProjectSummary({ p }: { p: Project }) {
   const total = rooms.reduce((s, r) => s + roomMetrics(p, r.id).netArea, 0)
   return (
     <>
-      <Section title="Rooms">
+      <Section title={sortedLevels(p).length > 1 ? `Rooms · ${p.levels[level]?.name ?? ''}` : 'Rooms'}>
         {rooms.length === 0 && <p className="text-[12.5px] text-mute">No rooms yet — choose the Room tool and drag on the plan.</p>}
         <ul className="space-y-0.5">
           {rooms.map((r) => (
@@ -302,7 +338,8 @@ export function Inspector() {
     ((selection.kind === 'room' && p.rooms[selection.id]) ||
       (selection.kind === 'wall' && p.walls[selection.id]) ||
       (selection.kind === 'opening' && p.openings[selection.id]) ||
-      (selection.kind === 'item' && p.items[selection.id]))
+      (selection.kind === 'item' && p.items[selection.id]) ||
+      (selection.kind === 'stair' && p.stairs?.[selection.id]))
   return (
     <aside className="flex h-full flex-col overflow-hidden border-l border-line/80 bg-paper" aria-label="Inspector" data-testid="inspector">
       <header className="flex items-center justify-between border-b border-line/80 px-4 py-2.5">
@@ -318,6 +355,7 @@ export function Inspector() {
         {exists && selection.kind === 'wall' && <WallInspector p={p} id={selection.id} />}
         {exists && selection.kind === 'opening' && <OpeningInspector p={p} id={selection.id} />}
         {exists && selection.kind === 'item' && <ItemInspector p={p} id={selection.id} />}
+        {exists && selection.kind === 'stair' && <StairInspector p={p} id={selection.id} />}
         {!exists && <ProjectSummary p={p} />}
       </div>
     </aside>

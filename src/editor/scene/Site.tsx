@@ -3,13 +3,14 @@ import { useFrame } from '@react-three/fiber'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { FinishDef } from '../../engine/assets/finishes'
-import { interiorPoint, pointInPolygon, area } from '../../engine/geometry/polygon'
+import { distanceToBoundary, interiorPoint, pointInPolygon, area } from '../../engine/geometry/polygon'
 import { entrances, roofPlan } from '../../engine/geometry/site'
 import type { Face } from '../../engine/geometry/walls'
-import { roomPolygon, roomsOnLevel } from '../../engine/model/query'
+import { roomPolygon, roomsOnLevel, sortedLevels } from '../../engine/model/query'
+import { stairGeometry, stairsOf } from '../../engine/model/stairs'
 import { isOutdoor, type Id, type Project } from '../../engine/model/types'
 import { planBounds } from './bounds'
-import { facesToGeometry } from './buildGeometry'
+import { facesToGeometry, slabGeometry } from './buildGeometry'
 import { useFinishMaterial } from './materials'
 import { QUALITY, type Quality } from './quality'
 import { SUN_DIR, useSkyTextures } from './sky'
@@ -142,16 +143,52 @@ function Paving({ project, level }: { project: Project; level: Id }) {
   return <mesh geometry={geometry} material={mat} position-y={-0.014} receiveShadow raycast={() => null} />
 }
 
-/** Flat roof with gravel ballast and a rendered fascia; shown in first person and the free camera. */
-function Roof({ project, level, top }: { project: Project; level: Id; top: number }) {
+/** Concatenate non-indexed geometries (position, normal, uv), one material group each. */
+function mergeGroups(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
+  const merged = new THREE.BufferGeometry()
+  for (const name of ['position', 'normal', 'uv'] as const) {
+    const arrays = parts.map((g) => g.getAttribute(name).array as Float32Array)
+    const out = new Float32Array(arrays.reduce((n, a) => n + a.length, 0))
+    let at = 0
+    for (const a of arrays) {
+      out.set(a, at)
+      at += a.length
+    }
+    merged.setAttribute(name, new THREE.BufferAttribute(out, name === 'uv' ? 2 : 3))
+  }
+  let start = 0
+  parts.forEach((g, i) => {
+    const n = g.getAttribute('position').count
+    merged.addGroup(start, n, i)
+    start += n
+    g.dispose()
+  })
+  merged.computeBoundingSphere()
+  return merged
+}
+
+/**
+ * Flat roof with gravel ballast and a rendered fascia over one floor; shown in first person and the free
+ * camera. Under a floor above, the same slab is the floor structure (its fascia reads as the slab band
+ * between storeys) and it is cut where stairs rise through it.
+ */
+function Roof({ project, level, top, T, overhang }: { project: Project; level: Id; top: number; T: number; overhang: number }) {
   const gravel = useFinishMaterial(GRAVEL)
-  const T = 0.32
   const geometry = useMemo(() => {
-    const plan = roofPlan(project, level, 0.3)
+    const plan = roofPlan(project, level, overhang)
     const tops: Face[] = []
     const sides: Face[] = []
     const up: [number, number, number] = [0, 1, 0]
-    for (const s of plan.slabs) tops.push({ role: 'top', normal: up, points: s.map((q) => [q.x, top + T, q.y]) })
+    const wells = stairsOf(project)
+      .filter((s) => s.level === level)
+      .map((s) => [...stairGeometry(project, s).corners])
+    const slabs = plan.slabs.map((poly) =>
+      slabGeometry(
+        poly,
+        wells.filter((w) => pointInPolygon({ x: (w[0].x + w[2].x) / 2, y: (w[0].y + w[2].y) / 2 }, poly)),
+        top + T,
+      ),
+    )
     for (const { corners: c } of plan.strips) {
       tops.push({ role: 'top', normal: up, points: c.map((q) => [q.x, top + T, q.y]) })
       sides.push({ role: 'cap', normal: [0, -1, 0], points: c.map((q) => [q.x, top, q.y]) })
@@ -167,26 +204,35 @@ function Roof({ project, level, top }: { project: Project; level: Id; top: numbe
         sides.push({ role: 'cap', normal: [n.x, 0, n.y], points: [[a.x, top, a.y], [b2.x, top, b2.y], [b2.x, top + T, b2.y], [a.x, top + T, a.y]] })
       }
     }
-    const g1 = facesToGeometry(tops)
-    const g2 = facesToGeometry(sides)
-    const merged = new THREE.BufferGeometry()
-    for (const name of ['position', 'normal', 'uv'] as const) {
-      const a = g1.getAttribute(name).array as Float32Array
-      const b2 = g2.getAttribute(name).array as Float32Array
-      const out = new Float32Array(a.length + b2.length)
-      out.set(a)
-      out.set(b2, a.length)
-      merged.setAttribute(name, new THREE.BufferAttribute(out, name === 'uv' ? 2 : 3))
-    }
-    merged.addGroup(0, g1.getAttribute('position').count, 0)
-    merged.addGroup(g1.getAttribute('position').count, g2.getAttribute('position').count, 1)
-    merged.computeBoundingSphere()
-    g1.dispose()
-    g2.dispose()
-    return merged
-  }, [project, level, top])
+    // groups: every slab and the strip tops take gravel (material 0), the strip sides the fascia (1)
+    const g = mergeGroups([...slabs, facesToGeometry(tops), facesToGeometry(sides)])
+    const groups = g.groups
+    groups.forEach((gr, i) => (gr.materialIndex = i === groups.length - 1 ? 1 : 0))
+    return g
+  }, [project, level, top, T, overhang])
   useEffect(() => () => geometry.dispose(), [geometry])
-  return <mesh geometry={geometry} material={[gravel, fascia]} castShadow receiveShadow raycast={() => null} name="roof" />
+  return <mesh geometry={geometry} material={[gravel, fascia]} castShadow receiveShadow raycast={() => null} name={`roof:${level}`} />
+}
+
+/** The point nearest a room's natural centre that is on its ceiling: at least 40 cm clear of any stairwell. */
+function ceilingPoint(poly: { x: number; y: number }[], wells: { x: number; y: number }[][]) {
+  const c = interiorPoint(poly)
+  const clear = (q: { x: number; y: number }) => wells.every((w) => !pointInPolygon(q, w) && distanceToBoundary(q, w) > 0.4)
+  if (clear(c)) return c
+  const xs = poly.map((q) => q.x)
+  const ys = poly.map((q) => q.y)
+  let best = c
+  let bestD = Infinity
+  for (let x = Math.min(...xs) + 0.4; x <= Math.max(...xs) - 0.4; x += 0.1)
+    for (let y = Math.min(...ys) + 0.4; y <= Math.max(...ys) - 0.4; y += 0.1) {
+      const q = { x, y }
+      const d = Math.hypot(x - c.x, y - c.y)
+      if (d < bestD && pointInPolygon(q, poly) && distanceToBoundary(q, poly) > 0.4 && clear(q)) {
+        best = q
+        bestD = d
+      }
+    }
+  return best
 }
 
 /**
@@ -200,7 +246,11 @@ function RoomLights({ project, level, ceiling, on }: { project: Project; level: 
     () =>
       indoorRooms(project, level).map((r) => {
         const poly = roomPolygon(project, r)
-        const c = interiorPoint(poly)
+        // the fitting goes on the ceiling, not over a stairwell cut through it
+        const wells = stairsOf(project)
+          .filter((s) => s.level === level)
+          .map((s) => [...stairGeometry(project, s).corners])
+        const c = ceilingPoint(poly, wells)
         const a = area(poly)
         return { id: r.id, poly, x: c.x, z: c.y, intensity: Math.min(6, 1.4 + a * 0.24), distance: Math.sqrt(a) * 1.6 + 1.2 }
       }),
@@ -255,15 +305,24 @@ function Sky({ url }: { url: string }) {
   )
 }
 
-/** Sky, sun, ground, terrace, roof and room lights for the current level. */
-export function Site({ project, level, firstPerson, quality }: { project: Project; level: Id; firstPerson: boolean; quality: Quality }) {
+const levelTop = (p: Project, level: Id) => (p.levels[level]?.elevation ?? 0) + Math.max(2.4, ...Object.values(p.walls).filter((w) => w.level === level).map((w) => w.height))
+
+/**
+ * Sky, sun, ground, terrace, roofs and room lights. `levels` are the floors on show (bottom up); `level` is
+ * the floor being edited or walked on, whose rooms get the lights.
+ */
+export function Site({ project, level, levels, firstPerson, quality }: { project: Project; level: Id; levels: Id[]; firstPerson: boolean; quality: Quality }) {
   const q = QUALITY[quality]
-  const b = planBounds(project, level)
+  const all = sortedLevels(project)
+  const ground = all[0]?.id ?? level
+  const topmost = all[all.length - 1]?.id
+  const b = planBounds(project)
   const cx = (b.x0 + b.x1) / 2
   const cz = (b.y0 + b.y1) / 2
   const r = Math.max(b.x1 - b.x0, b.y1 - b.y0) / 2 + 3
   const lv = project.levels[level]
-  const top = (lv?.elevation ?? 0) + Math.max(2.4, ...Object.values(project.walls).filter((w) => w.level === level).map((w) => w.height))
+  const top = levelTop(project, level)
+  const floor = lv?.elevation ?? 0
   const target = useMemo(() => new THREE.Object3D(), [])
   useEffect(() => {
     target.position.set(cx, 0, cz)
@@ -276,7 +335,7 @@ export function Site({ project, level, firstPerson, quality }: { project: Projec
   const hemi = useRef<THREE.HemisphereLight>(null)
   useFrame((state, dt) => {
     const cam = state.camera.position
-    const inside = firstPerson && cam.y < top && polys.some((poly) => pointInPolygon({ x: cam.x, y: cam.z }, poly))
+    const inside = firstPerson && cam.y < top && cam.y > floor && polys.some((poly) => pointInPolygon({ x: cam.x, y: cam.z }, poly))
     const k = Math.min(1, dt * 4)
     const s = state.scene
     const env = inside ? 0.28 : 1
@@ -321,8 +380,13 @@ export function Site({ project, level, firstPerson, quality }: { project: Projec
         shadow-camera-far={r * 5}
       />
       <Lawn cx={cx} cz={cz} />
-      <Paving project={project} level={level} />
-      {firstPerson && <Roof project={project} level={level} top={top} />}
+      <Paving project={project} level={ground} />
+      {/* a roof over every floor in first person; while editing, only under the floors above (the slab band) */}
+      {levels
+        .filter((l) => firstPerson || l !== level)
+        .map((l) => (
+          <Roof key={l} project={project} level={l} top={levelTop(project, l)} T={l === topmost ? 0.32 : 0.28} overhang={l === topmost ? 0.3 : 0.1} />
+        ))}
       {q.interiorLights && <RoomLights project={project} level={level} ceiling={top} on={firstPerson} />}
     </>
   )

@@ -107,6 +107,23 @@ export interface Item {
   z?: number
 }
 
+/**
+ * A straight flight of stairs rising from `level` to the next level up. Its footprint is a
+ * `length` × `width` rectangle centred on (x, y); it climbs along plan direction (cos r, −sin r), the same
+ * rotation convention as items (counter-clockwise from above). Riser count and going are derived from the
+ * storey height and the length, never stored, so they always agree with the levels. On the upper level
+ * the footprint is a stairwell void with a guard rail on every side except the arrival edge.
+ */
+export interface Stair {
+  id: Id
+  level: Id
+  x: number
+  y: number
+  rotation: number
+  width: number
+  length: number
+}
+
 export interface Project {
   schema: 'roomset.project'
   version: 1
@@ -118,6 +135,8 @@ export interface Project {
   rooms: Record<Id, Room>
   openings: Record<Id, Opening>
   items: Record<Id, Item>
+  /** Stairs between levels (absent in single-storey projects). */
+  stairs?: Record<Id, Stair>
   /** Exterior wall finish (facade) for the whole building; default lime render. */
   facade?: string
   meta: { createdAt: string; updatedAt: string; template?: string }
@@ -147,5 +166,12 @@ export const LIMITS = {
   /** Clearance between an opening and the end of its wall, or another opening. */
   openingClearance: 0.05,
   minOpeningWidth: 0.3,
+  /** Stairs: clear width, and the going (tread depth) range for a comfortable, safe flight. */
+  minStairWidth: 0.8,
+  maxStairWidth: 2.4,
+  minGoing: 0.22,
+  maxGoing: 0.36,
+  /** Target riser height; the riser count is the storey rise divided by this, rounded. */
+  riser: 0.175,
   maxCoordinate: 500,
 } as const

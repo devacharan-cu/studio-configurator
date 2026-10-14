@@ -7,7 +7,9 @@ export interface SavedProject {
   facade?: string
   nodes: Record<string, { id: string; x: number; y: number }>
   walls: Record<string, { id: string; a: string; b: string; thickness: number }>
-  rooms: Record<string, { id: string; name: string; boundary: string[]; floorFinish: string }>
+  levels: Record<string, { id: string; name: string; elevation: number; height: number }>
+  rooms: Record<string, { id: string; level: string; name: string; boundary: string[]; floorFinish: string }>
+  stairs?: Record<string, { id: string; level: string; x: number; y: number; rotation: number; width: number; length: number }>
   openings: Record<string, { id: string; wall: string; kind: string; offset: number; width: number }>
   items: Record<string, { id: string; asset: string; x: number; y: number; rotation: number; variant?: string; z?: number }>
 }

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react'
 import { getAsset } from '../../engine/assets/catalog'
 import { addItem, addOpening, moveItem, moveOpening, rotateItem } from '../../engine/commands/elements'
+import { updateStair } from '../../engine/commands/stairs'
 import { createRoom, itemCorners, moveNode, moveWall } from '../../engine/commands/structure'
-import { closestOnSegment, dot, sub, type V2 } from '../../engine/geometry/vec'
+import { add, closestOnSegment, dot, scale, sub, type V2 } from '../../engine/geometry/vec'
 import { openingCenter, wallOutline, wallSides } from '../../engine/geometry/walls'
 import { fmtArea, fmtLen, roomMetrics } from '../../engine/metrics'
-import { nodePos, roomPolygon, wallFrame } from '../../engine/model/query'
+import { nodePos, roomPolygon, sortedLevels, wallFrame } from '../../engine/model/query'
+import { stairGeometry, stairsOf, type StairGeometry } from '../../engine/model/stairs'
 import type { Id, Item, Opening, Project } from '../../engine/model/types'
 import { currentProject, useEditor, useProject, type Selection } from '../store'
 import { GRID, snapLength, snapPoint, type SnapResult } from './snap'
@@ -30,6 +32,7 @@ type Drag =
   | { kind: 'opening'; id: Id; base: Project; grab: number }
   | { kind: 'item'; id: Id; base: Project; offset: V2 }
   | { kind: 'rotate'; id: Id; base: Project }
+  | { kind: 'stair'; id: Id; base: Project; offset: V2 }
   | { kind: 'draw'; start: V2 }
 
 interface View {
@@ -100,6 +103,21 @@ export function PlanView() {
       .sort((a, b) => height(a) - height(b))
   }, [project, level])
   const outlines = useMemo(() => new Map(walls.map((w) => [w.id, wallOutline(project, w)])), [walls, project])
+  // the floor below, faintly, to line an upper floor up with it
+  const below = useMemo(() => {
+    const ls = sortedLevels(project)
+    const i = ls.findIndex((l) => l.id === level)
+    const under = i > 0 ? ls[i - 1].id : null
+    return under ? Object.values(project.walls).filter((w) => w.level === under).map((w) => wallOutline(project, w).footprint) : []
+  }, [project, level])
+  // flights rising from this floor, and stairwells arriving on it
+  const stairs = useMemo(
+    () =>
+      stairsOf(project)
+        .map((st) => stairGeometry(project, st))
+        .filter((g) => g.stair.level === level || g.to?.id === level),
+    [project, level],
+  )
   const sides = useMemo(() => wallSides(project), [project])
 
   /* ---------- wheel zoom (around the cursor) ---------- */
@@ -187,6 +205,9 @@ export function PlanView() {
     } else if (target.kind === 'item') {
       const it = p.items[target.id]
       drag.current = { kind: 'item', id: it.id, base: p, offset: { x: q.x - it.x, y: q.y - it.y } }
+    } else if (target.kind === 'stair' && p.stairs?.[target.id]) {
+      const st = p.stairs[target.id]
+      drag.current = { kind: 'stair', id: st.id, base: p, offset: { x: q.x - st.x, y: q.y - st.y } }
     }
   }
 
@@ -238,6 +259,10 @@ export function PlanView() {
         setPreview(moveItem(d.base, { item: d.id, x: snapLength(q.x - d.offset.x), y: snapLength(q.y - d.offset.y) }))
         break
       }
+      case 'stair': {
+        setPreview(updateStair(d.base, { stair: d.id, x: snapLength(q.x - d.offset.x), y: snapLength(q.y - d.offset.y) }))
+        break
+      }
       case 'rotate': {
         const it = d.base.items[d.id]
         // handle sits in front of the item (+y at rotation 0); angle measured accordingly, snapped to 15°
@@ -275,7 +300,7 @@ export function PlanView() {
       return
     }
     if (d.kind === 'pan') return
-    const labels = { wall: 'Move wall', node: 'Move corner', opening: 'Move opening', item: 'Move item', rotate: 'Rotate item' } as const
+    const labels = { wall: 'Move wall', node: 'Move corner', opening: 'Move opening', item: 'Move item', rotate: 'Rotate item', stair: 'Move stairs' } as const
     commitPreview(labels[d.kind])
   }
 
@@ -328,6 +353,11 @@ export function PlanView() {
           </pattern>
         </defs>
         <rect x={v.x} y={v.y} width={size.w / v.s} height={size.h / v.s} fill="url(#grid-major)" />
+
+        {/* the floor below, for alignment */}
+        {below.map((poly, i) => (
+          <polygon key={`below-${i}`} points={poly.map(pt).join(' ')} fill="rgba(120,110,100,0.07)" stroke="#b9b0a4" strokeWidth={px(1)} strokeDasharray={`${px(5)} ${px(4)}`} pointerEvents="none" data-below />
+        ))}
 
         {/* rooms */}
         {rooms.map((r) => {
@@ -385,6 +415,20 @@ export function PlanView() {
             </g>
           )
         })}
+
+        {/* stairs: the flight on its own floor ("UP"), the guarded stairwell on the floor above ("DN") */}
+        {stairs.map((g) => (
+          <StairSymbol
+            key={g.stair.id}
+            g={g}
+            up={g.stair.level === level}
+            selected={isSel('stair', g.stair.id)}
+            hovered={isHover('stair', g.stair.id)}
+            px={px}
+            onDown={(e) => onDown(e, { kind: 'stair', id: g.stair.id })}
+            onHover={(on) => setHover(on ? { kind: 'stair', id: g.stair.id } : null)}
+          />
+        ))}
 
         {/* walls */}
         {walls.map((w) => {
@@ -561,6 +605,40 @@ export function PlanView() {
         </button>
       </div>
     </div>
+  )
+}
+
+/** A flight in plan: treads, a walking line with an arrow, UP at the foot; on the floor above, the stairwell with its guard and DN. */
+function StairSymbol({ g, up, selected, hovered, px, onDown, onHover }: { g: StairGeometry; up: boolean; selected: boolean; hovered: boolean; px: (n: number) => number; onDown: (e: RPointerEvent) => void; onHover: (on: boolean) => void }) {
+  const W = g.stair.width / 2
+  const at = (u: number, v = 0) => add(add(g.bottomMid, scale(g.dir, u)), scale(g.side, v))
+  const treads = Array.from({ length: g.risers - 1 }, (_, i) => (i + 1) * g.going)
+  const stroke = selected ? '#8c5a3c' : '#6f665c'
+  const L = g.stair.length
+  const tip = up ? at(L - 0.12) : at(0.12)
+  const tail = up ? at(0.25) : at(L - 0.25)
+  const back = scale(up ? g.dir : scale(g.dir, -1), -0.22)
+  const head = [add(add(tip, back), scale(g.side, 0.12)), tip, add(sub(tip, scale(g.side, 0.12)), back)]
+  const label = up ? at(0.25 + 0.2, 0) : at(L - 0.45, 0)
+  const [bl, br, tr, tl] = g.corners
+  return (
+    <g className="cursor-move" data-stair={up ? 'up' : 'down'} data-stair-id={g.stair.id} onPointerDown={onDown} onPointerEnter={() => onHover(true)} onPointerLeave={() => onHover(false)}>
+      <polygon points={g.corners.map(pt).join(' ')} fill={selected ? 'rgba(140,90,60,0.22)' : hovered ? 'rgba(140,90,60,0.12)' : up ? '#fbf9f5' : 'rgba(255,255,255,0.5)'} stroke={stroke} strokeWidth={px(selected ? 2 : 1.2)} />
+      {treads.map((u) => {
+        const a = at(u, -W)
+        const b = at(u, W)
+        return <line key={u} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={stroke} strokeWidth={px(0.8)} strokeDasharray={up ? undefined : `${px(3)} ${px(3)}`} pointerEvents="none" />
+      })}
+      {!up && (
+        // guard on the three open sides of the stairwell
+        <polyline points={[tl, bl, br, tr].map(pt).join(' ')} fill="none" stroke={stroke} strokeWidth={px(3)} pointerEvents="none" />
+      )}
+      <line x1={tail.x} y1={tail.y} x2={tip.x} y2={tip.y} stroke={stroke} strokeWidth={px(1.4)} pointerEvents="none" />
+      <polyline points={head.map(pt).join(' ')} fill="none" stroke={stroke} strokeWidth={px(1.4)} pointerEvents="none" />
+      <text x={label.x} y={label.y} fontSize={px(10)} textAnchor="middle" dominantBaseline="middle" className="fill-ink font-semibold" stroke="#fbf9f5" strokeWidth={px(3)} paintOrder="stroke" pointerEvents="none">
+        {up ? 'UP' : 'DN'}
+      </text>
+    </g>
   )
 }
 

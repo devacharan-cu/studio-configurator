@@ -619,3 +619,50 @@ FBX-only books (reasons in ASSETS.md).
 - **Small rooms' plan labels** are hidden at the default zoom, by design.
 
 **Commit:** `3573763` on `feature/house-library-and-assets`, pushed to origin (fast-forward from `caf7aba`).
+
+## P3-M5 — Multi-storey, stairs, and templates to twelve
+
+**What changed and why:**
+- **Engine:**
+  - `Stair` entity and validation rules (D23);
+  - commands: `addStair`, `addStairAnywhere`, `updateStair`, `deleteStair`, `renameLevel`,
+    `deleteLevel`; named floors in `addLevel`;
+  - `walkStep`, `walkFloor` and `furnishedLevels`;
+  - entrances through porches;
+  - multi-floor `HouseSpec`, with `upper` floors and `stairs` per floor.
+- **Editor:**
+  - floor bar: switch floor, add a floor, add stairs, remove the top floor;
+  - plan: stairs with treads and an UP/DN walking line, a stairwell guard, and a dashed outline of the
+    floor below; stairs can be dragged;
+  - stair inspector: derived steps, going and pitch; width and length; rotate and reverse; delete;
+  - 3D: floors stacked; flights, stairwells and holes in floors, ceilings and roofs; picking only on
+    the active floor; overview framing of the visible storeys;
+  - walkthrough: climbs stairs, "Go to room" across floors grouped by floor, and the editor's floor
+    follows the visitor;
+  - fly viewpoints on every floor;
+  - gallery: a plan per floor and floor tags in the room list.
+- **Five new houses** (12 in total):
+
+  | Template | Floors | Notes |
+  |---|---|---|
+  | Contemporary duplex | 2 | Stair hall with a straight timber flight; 4 bedrooms, guest suite downstairs, balcony |
+  | Row house with roof terrace | 3 | 6 m plot between party walls; two flights side by side; study between roof garden and roof terrace |
+  | Two-storey family villa | 2 | 5 m foyer with a central flight rising to a gallery landing; 5 bedrooms, master suite, upper lounge and balcony |
+  | Verandah bungalow | 1 | Kerala-style full-width sit-out with steps; 3 bedrooms; terracotta |
+  | One-bedroom apartment | 1 | 1BHK with foyer, guest-accessible bath, balcony |
+
+- **Performance:** joinery merged per material, and off-floor furniture hidden while walking (D24).
+
+**Commands & results:**
+- unit 274/274;
+- E2E 64 passed, 2 skipped (viewport-specific);
+- `npm audit` 0, Semgrep 0 findings, Gitleaks 0.
+
+**Known limitations:**
+- **Stairs:** straight flights only, no L/U/spiral; one storey height per template.
+- **Thumbnails:** a multi-storey thumbnail shows the top floor standing on the floors below. The
+  lower floors' interiors are visible only in the editor.
+- **Roofs:** a floor below the top shows a flat gravel roof wherever the floor above doesn't cover
+  it; there are no pitched roofs.
+- **Removing floors:** only the top floor; removing a middle floor isn't supported.
+- **Thumbnail framing:** the narrow row house reads small in its thumbnail.

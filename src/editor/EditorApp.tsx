@@ -1,11 +1,13 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { deleteItem, deleteOpening, duplicateItem, rotateItem } from '../engine/commands/elements'
+import { deleteStair, updateStair } from '../engine/commands/stairs'
 import { deleteRoom } from '../engine/commands/structure'
 import { canRedo, canUndo } from '../engine/history'
 import { parseProject, serializeProject } from '../engine/model/project'
 import { PlanView } from './plan/PlanView'
 import { currentProject, useEditor, type Tool, type ViewMode } from './store'
 import { AssetLibrary } from './ui/AssetLibrary'
+import { FloorBar } from './ui/FloorBar'
 import { Icon, type IconName } from './ui/icons'
 import { Inspector } from './ui/Inspector'
 import { NavHud } from './ui/NavHud'
@@ -263,6 +265,7 @@ function useShortcuts(setLibrary: (b: boolean) => void) {
         if (sel.kind === 'item' && st.run(deleteItem(p, { item: sel.id }))) st.select(null)
         else if (sel.kind === 'opening' && st.run(deleteOpening(p, { opening: sel.id }))) st.select(null)
         else if (sel.kind === 'room' && st.run(deleteRoom(p, { room: sel.id }))) st.select(null)
+        else if (sel.kind === 'stair' && st.run(deleteStair(p, { stair: sel.id }))) st.select(null)
         else if (sel.kind === 'wall') st.notify('info', 'Walls are deleted with their rooms — select the room instead')
         return
       }
@@ -274,6 +277,10 @@ function useShortcuts(setLibrary: (b: boolean) => void) {
       }
       if (e.key.toLowerCase() === 'q' && sel?.kind === 'item') {
         st.run(rotateItem(p, { item: sel.id, rotation: p.items[sel.id].rotation + Math.PI / 2 }))
+        return
+      }
+      if (e.key.toLowerCase() === 'q' && sel?.kind === 'stair' && p.stairs?.[sel.id]) {
+        st.run(updateStair(p, { stair: sel.id, rotation: p.stairs[sel.id].rotation + Math.PI / 2 }))
         return
       }
       const tool = TOOLS.find((x) => x.key.toLowerCase() === e.key.toLowerCase())
@@ -316,7 +323,8 @@ export default function EditorApp() {
           </div>
         )}
         {library && !immersive && <AssetLibrary onClose={() => setLibrary(false)} />}
-        <main className="flex min-w-0 flex-1">
+        <main className="relative flex min-w-0 flex-1">
+          {!immersive && <FloorBar />}
           {showPlan && (
             <section className={`relative min-w-0 ${show3d ? 'w-1/2 border-r border-line/80' : 'flex-1'}`} aria-label="2D plan">
               <PlanView />

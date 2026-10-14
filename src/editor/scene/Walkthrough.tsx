@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { arrivalHeading, buildColliders, currentRoom, moveWithCollisions, SIGHT_ITEM_HEIGHT, spawnPoint } from '../../engine/walk'
+import { arrivalHeading, colliderCache, currentRoom, furnishedLevels, moveWithCollisions, SIGHT_ITEM_HEIGHT, spawnPoint, walkFloor, walkStep } from '../../engine/walk'
 import { useEditor, useProject } from '../store'
 import { useNavInput } from './useNavInput'
 import { approach, keyIntent, walkInput } from './walkInput'
@@ -27,24 +27,28 @@ const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a))
  */
 export function Walkthrough() {
   const project = useProject()
-  const level = useEditor((s) => s.level)
   const goto = useEditor((s) => s.walk.goto)
   const getThree = useThree((s) => s.get)
-  const lv = project.levels[level]
-  const colliders = useMemo(() => buildColliders(project, level), [project, level])
-  const sight = useMemo(() => buildColliders(project, level, SIGHT_ITEM_HEIGHT), [project, level])
+  // colliders per floor, built on first use (a walk usually stays on one or two floors)
+  const colliders = useMemo(() => colliderCache(project), [project])
+  const sight = useMemo(() => colliderCache(project, SIGHT_ITEM_HEIGHT), [project])
   useNavInput()
 
-  const state = useRef({ x: 0, y: 0, yaw: 0, pitch: -0.04, vx: 0, vy: 0, t: 0, from: new THREE.Vector3(), fromQ: new THREE.Quaternion(), fromFov: 45, lastHud: 0 })
+  const state = useRef({ x: 0, y: 0, level: '', stair: null as string | null, floor: 0, yaw: 0, pitch: -0.04, vx: 0, vy: 0, t: 0, from: new THREE.Vector3(), fromQ: new THREE.Quaternion(), fromFov: 45, lastHud: 0 })
 
-  // Enter: start in the hall (or first room), looking down its most open direction; glide in from the current camera.
+  // Enter: on the floor being edited, at the front door (or in the hall), looking down the most open
+  // direction; glide in from the current camera.
   useEffect(() => {
     const s = state.current
+    const level = useEditor.getState().level
     const start = spawnPoint(project, level) ?? { x: 0, y: 0 }
-    const q = moveWithCollisions(start, { x: 0, y: 0 }, RADIUS, colliders)
+    const q = moveWithCollisions(start, { x: 0, y: 0 }, RADIUS, colliders(level))
     s.x = q.x
     s.y = q.y
-    s.yaw = arrivalHeading(project, level, q, sight)
+    s.level = level
+    s.stair = null
+    s.floor = project.levels[level]?.elevation ?? 0
+    s.yaw = arrivalHeading(project, level, q, sight(level))
     s.pitch = -0.04
     s.vx = s.vy = 0
     s.t = 0
@@ -58,13 +62,18 @@ export function Walkthrough() {
   useEffect(() => {
     if (!goto) return
     const s = state.current
-    const q = moveWithCollisions({ x: goto.x, y: goto.y }, { x: 0, y: 0 }, RADIUS, colliders)
+    const level = goto.level && project.levels[goto.level] ? goto.level : s.level
+    const q = moveWithCollisions({ x: goto.x, y: goto.y }, { x: 0, y: 0 }, RADIUS, colliders(level))
     s.x = q.x
     s.y = q.y
+    s.level = level
+    s.stair = null
+    s.floor = project.levels[level]?.elevation ?? 0
     s.vx = s.vy = 0
-    s.yaw = goto.yaw ?? arrivalHeading(project, level, q, sight)
+    s.yaw = goto.yaw ?? arrivalHeading(project, level, q, sight(level))
     s.pitch = -0.04
-  }, [goto, colliders]) // eslint-disable-line react-hooks/exhaustive-deps
+    useEditor.getState().setLevel(level)
+  }, [goto]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const euler = useMemo(() => new THREE.Euler(0, 0, 0, 'YXZ'), [])
   const targetQ = useMemo(() => new THREE.Quaternion(), [])
@@ -103,7 +112,10 @@ export function Walkthrough() {
     s.vx += (tvx - s.vx) * a
     s.vy += (tvy - s.vy) * a
     if (Math.hypot(s.vx, s.vy) > 1e-3) {
-      const next = moveWithCollisions({ x: s.x, y: s.y }, { x: s.vx * dt, y: s.vy * dt }, RADIUS, colliders)
+      const next = walkStep(project, { x: s.x, y: s.y, level: s.level, stair: s.stair }, { x: s.vx * dt, y: s.vy * dt }, RADIUS, colliders)
+      if (next.level !== s.level) useEditor.getState().setLevel(next.level)
+      s.level = next.level
+      s.stair = next.stair
       // sliding along a wall keeps the tangential part of the velocity; walking into it stops you
       if (dt > 0) {
         s.vx = (next.x - s.x) / dt
@@ -117,7 +129,9 @@ export function Walkthrough() {
     // camera
     euler.set(s.pitch, s.yaw, 0)
     targetQ.setFromEuler(euler)
-    targetP.set(s.x, (lv?.elevation ?? 0) + EYE_HEIGHT, s.y)
+    // the floor height follows the steps smoothly (no jolt at each riser)
+    s.floor += (walkFloor(project, { x: s.x, y: s.y, level: s.level, stair: s.stair }) - s.floor) * approach(14, dt)
+    targetP.set(s.x, s.floor + EYE_HEIGHT, s.y)
     if (s.t < TRANSITION) {
       s.t += dt
       const u = Math.min(1, s.t / TRANSITION)
@@ -138,10 +152,13 @@ export function Walkthrough() {
     s.lastHud += dt
     if (s.lastHud > 0.15) {
       s.lastHud = 0
-      const room = currentRoom(project, level, { x: s.x, y: s.y })
-      useEditor.getState().setWalkRoom(room?.name ?? null)
+      const room = s.stair ? null : currentRoom(project, s.level, { x: s.x, y: s.y })
+      useEditor.getState().setWalkRoom(s.stair ? 'Stairs' : (room?.name ?? null))
+      useEditor.getState().setWalkFurnished(furnishedLevels(project, { x: s.x, y: s.y, level: s.level, stair: s.stair }))
       const hud = document.querySelector('[data-testid=walk-hud]')
       hud?.setAttribute('data-walk-pos', `${s.x.toFixed(2)},${s.y.toFixed(2)}`)
+      hud?.setAttribute('data-walk-level', s.level)
+      hud?.setAttribute('data-walk-height', s.floor.toFixed(2))
       hud?.setAttribute('data-walk-look', `${s.yaw.toFixed(3)},${s.pitch.toFixed(3)}`)
       hud?.setAttribute('data-walk-speed', Math.hypot(s.vx, s.vy).toFixed(2))
     }

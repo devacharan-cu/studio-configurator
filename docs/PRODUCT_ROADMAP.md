@@ -38,7 +38,7 @@ implied; ? = not stated or not verified; ✗ = absent. Only what we verified is 
 | Real-time walkthrough | 360° tour | ? | ✓ VR tour | VR/AR | ? | ? | video path | ~ | ✓ 3D | ✓ walk + fly |
 | Photoreal stills | 4K | 8K | ✓ ~10 s | cloud render | 4K | ✓ minutes | ray trace | ✓ | ✓ | ✗ (real-time only) |
 | Kitchen/cabinet design | ? | ? | ✓ | ? | ✓ planner | ? | ✓ catalogues | ? | ✓ finishes | ✗ |
-| Multi-storey + stairs | ? | ? | ? | ? | ? | ? (sections) | ✓ stairs | ✓ | ✓ | ✗ (schema only) |
+| Multi-storey + stairs | ? | ? | ? | ? | ? | ? (sections) | ✓ stairs | ✓ | ✓ | ✓ straight flights, voids, walkable (P3-M5) |
 | Roofs | ? | ? | ? | ? | ? | ✓ roof plans | ✓ styles | ✓ | ~ | ~ flat, derived |
 | Buyer options / variants | ✗ | ✗ | ✗ | ✗ | ✗ | ~ presentations | ✗ | ✓ Config/Showroom | ✓ | ✗ |
 | Construction docs / estimating | ✗ | ✗ | ✗ | ✗ | ✗ | elevations, areas | ✓ | ✓ | ✗ | ✗ (areas only) |
@@ -52,12 +52,12 @@ Priority = customer value × how much it unblocks, ÷ cost and risk. Status as o
 
 | # | Feature | User problem | Benefit | Complexity | Depends on | Priority | Status | Acceptance |
 |---|---|---|---|---|---|---|---|---|
-| 1 | House template library (10–15 houses) + browser | One sample house; nothing to start from | Very high: the first thing a builder evaluates | M per house, L total | 2, 4, 5 | P0 | Planned (P3-M4/M5) | ≥10 distinct valid houses; each opens in 2D/3D, walks, edits, saves; real thumbnails |
+| 1 | House template library (10–15 houses) + browser | One sample house; nothing to start from | Very high: the first thing a builder evaluates | M per house, L total | 2, 4, 5 | P0 | Done: 12 houses (P3-M4/M5) | ≥10 distinct valid houses; each opens in 2D/3D, walks, edits, saves; real thumbnails |
 | 2 | Template/asset architecture (registry, manifest, validation) | Content can't scale without data-driven registries | Unblocks 1, 3 | M | — | P0 | Planned (P3-M1) | Templates and assets are data plus validated builders; tests check every entry |
 | 3 | Real model library ≥40 (target 60–75) | Block-like furniture; 10 code-modelled placeholders | Very high: realism and usefulness | L | 2 | P0 | Planned (P3-M2) | ≥40 distinct licensed models, measured, thumbnailed, placeable, saved |
 | 4 | Asset browser: thumbnails, search, categories, recents, states | Text list without previews | High | M | 2, 3 | P0 | Planned (P3-M1/M2) | Search → preview → place → edit → save works in E2E |
 | 5 | Duplicate / copy items; material options per item | Furnishing is slow; no finish choice per piece | High | S–M | — | P0 | Planned (P3-M1) | Duplicate + material change are undoable commands |
-| 6 | Multi-storey: level UI, stairs, slab voids, walk between levels | Duplex, townhouse and villa templates impossible | High (developer market) | L | 2 | P1 | Planned (P3-M5) | Real stairs connect levels; walkthrough climbs; templates use it |
+| 6 | Multi-storey: level UI, stairs, slab voids, walk between levels | Duplex, townhouse and villa templates impossible | High (developer market) | L | 2 | P1 | Done (P3-M5): straight flights; L/U flights later | Real stairs connect levels; walkthrough climbs; templates use it |
 | 7 | Kitchen and bathroom parametric fixtures | No CC0 photoreal kitchen cabinetry exists; current blocks look crude | High | M | 3 | P1 | Planned (P3-M3) | Cabinet runs with doors, handles, worktop, sink, hob; bathroom fixtures |
 | 8 | Material library: tiles, stone, wood, concrete, paint, fabric | Few finishes; everything looks similar | High | M | — | P1 | Planned (P3-M3) | ≥20 finishes with swatches; per-room and per-item choice |
 | 9 | Site that follows the footprint; lawn without visible repetition | Reported rectangular terrace and tiled lawn | Medium | S–M | — | P1 | Planned (P3-M3) | Terrace offset from the outline; anti-tiling lawn |

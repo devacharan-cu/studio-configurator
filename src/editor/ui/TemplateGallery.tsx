@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildTemplate, KIND_LABELS, TEMPLATES, templatePreview, type TemplateDef, type TemplateKind } from '../../engine/templates'
+import { sortedLevels } from '../../engine/model/query'
 import { useEditor } from '../store'
 import { Icon } from './icons'
 import { PlanPreview } from './PlanPreview'
 
 const thumb = (t: TemplateDef) => `/assets/templates/${t.id}.webp`
+const floorsOf = (t: TemplateDef) => sortedLevels(templatePreview(t).project)
 
 function Facts({ t }: { t: TemplateDef }) {
   if (!t.spec) return <p className="text-[11.5px] text-mute">Empty plan</p>
@@ -98,9 +100,13 @@ export function TemplateGallery({ onClose, onCreated }: { onClose: () => void; o
             <div className="space-y-3">
               <Thumb t={picked} className="aspect-[16/10] w-full rounded-xl" />
               {picked.spec && (
-                <div className="rounded-xl border border-line bg-[#f7f5f0] p-3">
-                  <p className="eyebrow mb-1">Floor plan</p>
-                  <PlanPreview project={templatePreview(picked).project} className="max-h-[38dvh] w-full" />
+                <div className={`grid gap-3 ${floorsOf(picked).length > 1 ? 'sm:grid-cols-2' : ''}`}>
+                  {floorsOf(picked).map((l) => (
+                    <div key={l.id} className="rounded-xl border border-line bg-[#f7f5f0] p-3" data-testid="template-floor-plan">
+                      <p className="eyebrow mb-1">{floorsOf(picked).length > 1 ? `${l.name} plan` : 'Floor plan'}</p>
+                      <PlanPreview project={templatePreview(picked).project} level={l.id} className="max-h-[38dvh] w-full" />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -112,12 +118,19 @@ export function TemplateGallery({ onClose, onCreated }: { onClose: () => void; o
               <p className="text-[13.5px] leading-relaxed text-ink-soft">{picked.description}</p>
               {picked.spec && (
                 <ul className="space-y-1 text-[12.5px]" aria-label="Rooms">
-                  {Object.values(templatePreview(picked).project.rooms).map((r) => (
-                    <li key={r.id} className="flex justify-between border-b border-line/50 py-1">
-                      <span>{r.name}</span>
-                      <span className="text-mute capitalize">{r.type}</span>
-                    </li>
-                  ))}
+                  {floorsOf(picked).flatMap((l) =>
+                    Object.values(templatePreview(picked).project.rooms)
+                      .filter((r) => r.level === l.id)
+                      .map((r) => (
+                        <li key={r.id} className="flex justify-between border-b border-line/50 py-1">
+                          <span>{r.name}</span>
+                          <span className="text-mute">
+                            <span className="capitalize">{r.type}</span>
+                            {floorsOf(picked).length > 1 && ` · ${l.name.replace(/ floor$/i, '')}`}
+                          </span>
+                        </li>
+                      )),
+                  )}
                 </ul>
               )}
               <div className="flex flex-wrap gap-1">

@@ -13,18 +13,15 @@ The plan and backlog are in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md).
 | P3-M2 | Asset pipeline; library 26 → 82 entries (72 distinct third-party models); wall/ceiling/tabletop placement; credits | Done, pushed | `6aff0eb` | 169/169 unit; E2E **49 passed, 2 skipped** (device-specific), 0 failed, 7.8 min; 82/82 assets load in the real renderer |
 | P3-M3 | Finish library (15 floors, 9 walls, 6 facades); parametric kitchens/bathrooms/beds/wardrobes (22 parametric entries); planar mirror at Quality; footprint terrace; anti-tiling lawn; startup 3.2 s → 1.75 s longest freeze | Done, pushed | `915793b` | 183/183 unit; E2E **50 passed, 2 skipped** (device-specific), 0 failed, 7.8 min |
 | P3-M4 | 6 new house templates (7 total): studio, 2BHK city apartment, 3BHK family apartment, L-shaped bungalow, courtyard house, 4-bed family home; glazed double doors | Done | 3573763 (pushed) | 225/225 unit; E2E 57 passed, 2 skipped (viewport-specific); every room of every house walked |
-| P3-M5 | Multi-storey + templates to 10–15 | Planned | | |
+| P3-M5 | Multi-storey: floors, stairs (parametric, validated, walkable), floor bar, per-floor plan and 3D; 5 new houses (12 total: duplex, row house, villa, verandah bungalow, 1BHK) | Done | (this commit) | 274/274 unit; E2E 64 passed, 2 skipped (viewport-specific); keyboard stair climb in the production build |
 | P3-M6 | Variants, finish packages, presentation, still export | Planned | | |
 | P3-M7 | End-to-end review | Planned | | |
 
-**Next concrete task:** P3-M5, multi-storey.
-1. Render every level in 3D, stacked, with upper levels hidden while editing a lower one.
-2. Add a level switcher in the editor.
-3. Make stairs a parametric element that cuts a stairwell void and guard rail in the floor above.
-4. Let the walkthrough climb stairs and change level.
-5. Support levels in `HouseSpec`.
-6. Then add the duplex, townhouse and two-storey villa, plus more single-storey designs, to reach
-   10–15 templates.
+**Next concrete task:** P3-M6, variants and presentation.
+1. Finish packages: whole-house finish schemes applied in one undoable step.
+2. Presentation mode: a clean full-screen view with guided viewpoints per floor.
+3. Still-image export of the current view.
+4. Duplicate a project from the menu.
 
 ---
 

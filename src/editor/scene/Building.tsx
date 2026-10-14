@@ -6,9 +6,13 @@ import { openingCenter, wallSides, wallSolid, type Face } from '../../engine/geo
 import { openingsOnWall, roomPolygon, wallFrame, wallsAtNode } from '../../engine/model/query'
 import { isOutdoor, type Id, type Opening, type Project, type Room, type Wall } from '../../engine/model/types'
 import { useEditor, type Selection } from '../store'
-import { facesToGeometry, polygonGeometry } from './buildGeometry'
+import { facesToGeometry, slabGeometry } from './buildGeometry'
+import { pointInPolygon } from '../../engine/geometry/polygon'
+import type { V2 } from '../../engine/geometry/vec'
+import { stairGeometry, stairsOf } from '../../engine/model/stairs'
 import { finishById, getExteriorFinish, getFloorFinish, WALL_FINISHES, type FinishDef } from '../../engine/assets/finishes'
 import { MATS, useFinishMaterial } from './materials'
+import { MergedParts } from './merge'
 
 export interface PickHandlers {
   onPick: (s: Selection, e: ThreeEvent<PointerEvent>) => void
@@ -114,11 +118,25 @@ const WallMesh = memo(function WallMesh({
   )
 }, (a, b) => a.signature === b.signature && a.selected === b.selected && a.elevation === b.elevation && a.handlers === b.handlers)
 
+const holeKey = (holes: V2[][]) => holes.map((h) => h.map((q) => `${q.x.toFixed(3)},${q.y.toFixed(3)}`).join(';')).join('|')
+
+/** Stairwell outlines that cut through a room's floor (flights arriving here) or its ceiling (flights leaving here). */
+function stairHoles(p: Project, room: Room, which: 'floor' | 'ceiling'): V2[][] {
+  const poly = roomPolygon(p, room)
+  return stairsOf(p)
+    .map((s) => stairGeometry(p, s))
+    .filter((g) => (which === 'floor' ? g.to?.id === room.level : g.stair.level === room.level))
+    .filter((g) => pointInPolygon({ x: g.stair.x, y: g.stair.y }, poly))
+    .map((g) => [...g.corners])
+}
+
 function Floor({ project, room, elevation, handlers, selected }: { project: Project; room: Room; elevation: number; handlers: PickHandlers; selected: boolean }) {
   const floor = getFloorFinish(room.floorFinish)
   const material = useFinishMaterial(floor, `floor:${floor.id}`)
   const key = room.boundary.map((id) => `${project.nodes[id].x},${project.nodes[id].y}`).join('|')
-  const geometry = useMemo(() => polygonGeometry(roomPolygon(project, room), elevation, true), [key, elevation]) // eslint-disable-line react-hooks/exhaustive-deps
+  const holes = stairHoles(project, room, 'floor')
+  const hk = holeKey(holes)
+  const geometry = useMemo(() => slabGeometry(roomPolygon(project, room), holes, elevation, true), [key, hk, elevation]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => geometry.dispose(), [geometry])
   return (
     <group>
@@ -145,7 +163,9 @@ const CEILING: FinishDef = { id: 'ceiling', name: 'Ceiling plaster', texture: 'p
 function Ceiling({ project, room, y }: { project: Project; room: Room; y: number }) {
   const material = useFinishMaterial(CEILING)
   const key = room.boundary.map((id) => `${project.nodes[id].x},${project.nodes[id].y}`).join('|')
-  const geometry = useMemo(() => polygonGeometry(roomPolygon(project, room), y, false), [key, y]) // eslint-disable-line react-hooks/exhaustive-deps
+  const holes = stairHoles(project, room, 'ceiling')
+  const hk = holeKey(holes)
+  const geometry = useMemo(() => slabGeometry(roomPolygon(project, room), holes, y, false), [key, hk, y]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => geometry.dispose(), [geometry])
   return <mesh geometry={geometry} material={material} receiveShadow castShadow raycast={() => null} />
 }
@@ -238,8 +258,10 @@ function OpeningFixtures({ project, o, elevation, display, ext, handlers, select
   return (
     // local frame: x along the wall, z across it (+z = wall's left side), y up
     <group position={[c.x, elevation, c.y]} rotation-y={-angle} name={`opening:${o.id}`} {...pick}>
-      {parts}
-      {o.kind === 'door' && showTop && <DoorLeaf o={o} t={t} exterior={ext !== 0} selected={selected} />}
+      <MergedParts signature={`${o.kind}/${o.width}/${o.height}/${o.sill}/${o.hinge}/${o.swing}/${t}/${display}/${ext}/${selected}`}>
+        {parts}
+        {o.kind === 'door' && showTop && <DoorLeaf o={o} t={t} exterior={ext !== 0} selected={selected} />}
+      </MergedParts>
     </group>
   )
 }

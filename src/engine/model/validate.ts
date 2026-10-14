@@ -1,9 +1,11 @@
 import { getAsset } from '../assets/catalog'
-import { area, interiorPoint, isSimplePolygon, strictlyInside } from '../geometry/polygon'
+import { area, insetPolygon, interiorPoint, isSimplePolygon, pointInPolygon, strictlyInside } from '../geometry/polygon'
 import { angleOf, closestOnSegment, dist, segmentsProperlyIntersect, sub } from '../geometry/vec'
 import { usableRange } from '../geometry/walls'
-import { nodePos, openingsOnWall, roomPolygon, wallBetween, wallEnds, wallsAtNode, wallsOnLevel } from './query'
-import { LIMITS, TOL, type Id, type Project } from './types'
+import { add as plus, scale } from '../geometry/vec'
+import { nodePos, openingsOnWall, roomPolygon, roomWalls, wallBetween, wallEnds, wallsAtNode, wallsOnLevel } from './query'
+import { convexOverlap, stairGeometry, stairsOf } from './stairs'
+import { isOutdoor, LIMITS, TOL, type Id, type Project, type Room } from './types'
 
 export interface ValidationIssue {
   code: string
@@ -44,6 +46,7 @@ export function validateProject(p: Project): ValidationIssue[] {
     if (!p.levels[it.level]) add('ref', 'An item is on a missing level', it.id)
     if (!getAsset(it.asset)) add('asset', `Unknown asset “${it.asset}”`, it.id)
   }
+  for (const s of stairsOf(p)) if (!p.levels[s.level]) add('ref', 'Stairs are on a missing level', s.id)
   if (issues.length) return issues // structural checks below assume valid references
 
   // Walls: length, thickness, height, duplicates, crossings, T-junctions, junction angles
@@ -152,5 +155,71 @@ export function validateProject(p: Project): ValidationIssue[] {
     }
   }
 
+  validateStairs(p, add)
+  return issues
+}
+
+/** The room on `level` whose inner faces (walls' thickness removed) contain every point, if any. */
+function roomHolding(p: Project, level: Id, pts: { x: number; y: number }[]): Room | undefined {
+  return Object.values(p.rooms).find((r) => {
+    if (r.level !== level) return false
+    const inner = insetPolygon(roomPolygon(p, r), roomWalls(p, r).map((w) => (w ? w.thickness / 2 : 0)))
+    return pts.every((q) => pointInPolygon(q, inner))
+  })
+}
+
+/**
+ * Stairs: a level above to arrive on; a safe going and width; the flight inside one room below and its
+ * stairwell inside one indoor room above (so neither crosses a wall); room to step on and off at both
+ * ends; and nothing standing on the flight or in the stairwell.
+ */
+function validateStairs(p: Project, add: (code: string, message: string, ...entities: Id[]) => void, only?: Id) {
+  const stairs = stairsOf(p)
+  for (const s of stairs) {
+    if (only && s.id !== only) continue
+    const g = stairGeometry(p, s)
+    if (!g.to) {
+      add('stair-level', 'Stairs need a floor above to lead to — add a level first', s.id)
+      continue
+    }
+    if (s.width < LIMITS.minStairWidth - 1e-9 || s.width > LIMITS.maxStairWidth + 1e-9)
+      add('stair-width', `Stairs must be between ${fmt(LIMITS.minStairWidth)} and ${fmt(LIMITS.maxStairWidth)} wide`, s.id)
+    if (g.going < LIMITS.minGoing - 1e-9)
+      add('stair-steep', `These stairs would be too steep (${g.risers} steps of ${Math.round(g.going * 100)} cm) — make the flight at least ${fmt(g.risers * LIMITS.minGoing)} long`, s.id)
+    if (g.going > LIMITS.maxGoing + 1e-9) add('stair-shallow', `The flight is longer than ${g.risers} comfortable steps — shorten it to ${fmt(g.risers * LIMITS.maxGoing)} or less`, s.id)
+    const below = roomHolding(p, s.level, [...g.corners, plus(g.bottomMid, scale(g.dir, -0.5))])
+    if (!below) add('stair-room', 'Stairs must stand inside one room, with space to step on at the bottom', s.id)
+    const above = roomHolding(p, g.to.id, [...g.corners, plus(g.topMid, scale(g.dir, 0.5))])
+    if (!above || isOutdoor(above)) add('stair-arrival', `Stairs must arrive inside one room on ${g.to.name}, with space to step off at the top`, s.id)
+    for (const it of Object.values(p.items)) {
+      if (it.level !== s.level && it.level !== g.to.id) continue
+      const a = getAsset(it.asset)
+      // lights, wall art and things on tables don't stand on the floor (floor-standing wall units do)
+      if (!a || a.mount === 'ceiling' || (it.z ?? 0) > 0.25) continue
+      const hw = a.footprint.w / 2
+      const hd = a.footprint.d / 2
+      const c = Math.cos(it.rotation)
+      const sn = Math.sin(it.rotation)
+      const box = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]].map(([x, y]) => ({ x: it.x + x * c + y * sn, y: it.y - x * sn + y * c }))
+      if (convexOverlap(box, g.corners)) add('stair-blocked', `${a.name} is in the way of the stairs`, s.id, it.id)
+    }
+  }
+  // a flight can't start inside the stairwell of the flight arriving on its floor (stack them side by side)
+  for (const a of stairs)
+    for (const b of stairs) {
+      if (a === b || (only && a.id !== only && b.id !== only)) continue
+      const gb = stairGeometry(p, b)
+      if (gb.to?.id === a.level && convexOverlap(stairGeometry(p, a).corners, gb.corners)) add('stair-stack', 'A flight can’t start inside the stairwell of the flight below — put it beside it', a.id, b.id)
+    }
+  for (let i = 0; i < stairs.length; i++)
+    for (let j = i + 1; j < stairs.length; j++)
+      if ((!only || stairs[i].id === only || stairs[j].id === only) && stairs[i].level === stairs[j].level && convexOverlap(stairGeometry(p, stairs[i]).corners, stairGeometry(p, stairs[j]).corners))
+        add('stair-overlap', 'Two flights of stairs overlap', stairs[i].id, stairs[j].id)
+}
+
+/** Only the stair rules, for one flight (fast enough to try many candidate positions). */
+export function stairIssues(p: Project, stair: Id): ValidationIssue[] {
+  const issues: ValidationIssue[] = []
+  validateStairs(p, (code, message, ...entities) => issues.push({ code, message, entities }), stair)
   return issues
 }

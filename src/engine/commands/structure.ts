@@ -364,14 +364,21 @@ export function setFacade(p: Project, args: { finish: string }): CommandResult {
   return finish(d, 'Change facade')
 }
 
+const FLOOR_NAMES = ['Ground floor', 'First floor', 'Second floor', 'Third floor', 'Fourth floor']
+/** Structural floor slab between storeys, metres (floor-to-floor height = storey height + slab). */
+export const SLAB = 0.3
+export const MAX_LEVELS = 5
+
+/** Add an empty floor on top of the building. */
 export function addLevel(p: Project, args: { name?: string; height?: number }): CommandResult {
   const levels = Object.values(p.levels).sort((a, b) => a.elevation - b.elevation)
+  if (levels.length >= MAX_LEVELS) return fail('level-max', `A project can have up to ${MAX_LEVELS} floors`)
   const top = levels[levels.length - 1]
   const d = new Draft(p)
   const id = newId('l')
-  const SLAB = 0.3
-  d.setLevel({ id, name: args.name ?? `Level ${levels.length}`, elevation: top ? top.elevation + top.height + SLAB : 0, height: args.height ?? 2.7 })
+  const height = Math.min(LIMITS.maxWallHeight, Math.max(2.2, args.height ?? top?.height ?? 2.7))
+  d.setLevel({ id, name: args.name ?? FLOOR_NAMES[levels.length] ?? `Floor ${levels.length}`, elevation: top ? top.elevation + top.height + SLAB : 0, height })
   d.created.push(id)
-  return finish(d, 'Add level')
+  return finish(d, `Add ${d.p.levels[id].name.toLowerCase()}`)
 }
 

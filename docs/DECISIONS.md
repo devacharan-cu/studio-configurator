@@ -319,3 +319,81 @@ stall to the first draw.
 **Remaining:**
 - texture upload (~1.9 s): KTX2/Basis compression would cut it, but needs the KTX toolchain;
 - shaders for models that finish loading after the precompile still compile on first use.
+
+## D23 — Multi-storey: floors are levels; stairs are a validated element; walking is one state machine
+
+**Levels** already existed in the model, each with an elevation and a storey height. A new floor sits
+one storey plus a 0.3 m slab above the one below. Only the top floor can be removed, and that also
+removes the stairs to it, so no floor is left floating.
+
+**Stairs** are a new optional `Project.stairs` record: a straight flight with a footprint (centre,
+rotation, width, length) on the floor it rises from.
+- Everything else is derived, never stored: the next floor up, the rise, the riser count (rise ÷
+  0.175 m, rounded), the riser height and the going. A stair can therefore never disagree with the
+  floors.
+- Single-storey projects carry no `stairs` key, so earlier saves are unchanged and still valid.
+- `validateProject` refuses:
+  - a flight with no floor above;
+  - a going outside 22–36 cm, or a width outside 0.8–2.4 m;
+  - a flight not inside one room below, or a stairwell not inside one indoor room above (which also
+    means neither crosses a wall);
+  - no 0.5 m to step on or off;
+  - floor-standing furniture on the flight or in the stairwell;
+  - overlapping flights;
+  - a flight that starts inside the stairwell of the flight below (stacked flights sit side by side,
+    scissor-fashion).
+- The same rules check the stair alone, fast enough for "Add stairs" to try every position in every
+  room. Positions within 1 m of a doorway on either floor are skipped, and a clear message is given
+  when there is no room.
+
+**Walking** is a small state machine in the engine: `{x, y, level, stair}`.
+- On a floor, that floor's colliders apply. A flight is fenced on its sides and at its head below, and
+  its stairwell is guarded on three sides above.
+- Stepping into a flight (only possible at its foot or from the landing) puts you on the stairs, where
+  only the side rails constrain you and your height follows the run.
+- Walking off either end lands you on that floor.
+- The same `walkStep` drives the walkthrough, the template reachability test and the unit tests, so
+  "every room is reachable" now includes climbing.
+
+**Rendering:**
+- Editing shows the active floor (cut away) on top of the floors below at full height. The floors
+  above are lifted off.
+- Walking and flying show the whole house.
+- Each floor below another is capped by its roof slab and fascia, which reads as the slab band between
+  storeys and is cut where stairs rise through it.
+- Floors and ceilings get stairwell holes.
+- Flights are parametric: timber steps with real-scale plank UVs, a plastered waist slab, a glass
+  balustrade with steel handrail on open sides and a wall rail along walls. Stairwells get a slab-edge
+  lining and a glass guard.
+
+**Rejected:**
+- Stairs as furniture items: they need two floors, their own validation and their own walking
+  behaviour.
+- Storing the step count: it would go stale when a storey height changes.
+
+**Not yet:** L- and U-shaped flights with landings, spiral stairs, double-height voids without stairs,
+and per-floor storey heights in templates.
+
+## D24 — Fewer draw calls: merge joinery per material; hide furniture on floors out of sight
+
+Multi-storey doubled what is on screen. The villa walked at 30 fps (1,220 draw calls). Counting
+meshes by group showed door and window joinery at 481 calls (about 9 boxes per opening) and
+furniture at 502.
+
+**`MergedParts`:**
+- It merges its static children into one mesh per material after mount.
+- The original parts stay mounted as declarative JSX, but hidden and unpickable, so picking and
+  editing are unchanged.
+- A signature of the opening's shape triggers a re-merge. Moving an opening needs no re-merge,
+  because the merge is in the opening's own frame.
+- Joinery went from 481 to 138 calls. The compact home dropped from 584 to 478 calls; the villa walks
+  at 60 fps median again.
+
+**Off-floor furniture while walking:**
+- Furniture on floors you can't see (not your own, and not the other end of a flight you are on or
+  within 4 m of) is hidden.
+- Walls and floors stay, so the view through a stairwell is intact.
+- Hiding it rather than unmounting matters: the first version unmounted it and stalled 2.2 s when it
+  came back.
+
+**Next candidates:** merging walls per room (227 calls in the villa), and instancing repeated models.

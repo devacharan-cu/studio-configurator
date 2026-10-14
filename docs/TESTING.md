@@ -1,5 +1,77 @@
 # Testing record
 
+## Phase 3 — M5 multi-storey and templates to twelve (2026-10-15)
+
+| Command | Result |
+|---|---|
+| `npx tsc -b` / `npx oxlint` / build | pass / 0 / pass; no dev handles in `dist` |
+| `npx vitest run` | 274/274 |
+| `npx playwright test` | 64 passed, 2 skipped (viewport-specific) |
+
+**New unit suite, `stairs.test.ts`:**
+- floors: elevation and naming, top-floor-only removal, renaming;
+- stair numbers derived from the storey height: 17 risers of 17.6 cm for a 3.0 m rise;
+- save/load round trip;
+- refusals: no floor above, too steep, too narrow, too shallow, overlapping, through a wall, no room
+  to step on or off, arriving in mid-air, furniture on the flight or in the stairwell, a flight
+  starting inside the stairwell below;
+- auto-placement: clear of furniture and doorways, with a clear message when no space is left;
+- walking: up from the foot and down from the head with no height jumps; no stepping on from the
+  side, falling into the stairwell or walking into the head of the flight from below; three floors by
+  two side-by-side flights;
+- which floors' furniture is drawn while walking.
+
+**The template invariants are now multi-floor:**
+- furniture is checked on its own floor;
+- reachability is a search across floors through `walkStep`, so every room on every floor must be
+  reachable from the front door, upstairs rooms by climbing the stairs.
+
+**New E2E, `levels.spec.ts`, against the production build:**
+1. **Duplex:**
+   - the floor bar, the UP and DN stair symbols, and the dashed outline of the floor below;
+   - the 3D view changes with the floor;
+   - stair inspector numbers;
+   - **a walk with the keyboard only**: arrow keys to turn and W to walk, steering by the HUD's
+     position and heading, from the stair hall to the foot of the flight and up it. The visitor
+     arrives on the landing at 3.00 m, and the editor follows them upstairs;
+   - "Go to room" across floors.
+2. **A second floor from scratch** on a blank project:
+   - draw a room, add a floor, draw over the dashed outline, add stairs;
+   - a too-short flight is refused with the reason;
+   - undo, redo, reload;
+   - remove the top floor, then undo.
+
+`templates.spec.ts` now covers all eleven houses (walking every room on every floor) and checks the
+"N floors" card facts and per-floor previews.
+
+**Hands-on in the dev build** (scratch scripts; screenshots `docs/screenshots/editor/p3m5-*.jpg`):
+- every room of the duplex, villa and row house visited;
+- a keyboard climb up and back down the duplex stairs;
+- no console errors.
+
+**Performance** (integrated GPU, Balanced, walking at the front door, median / p95 frame ms, draw calls):
+
+| House | Before (no merging, all floors furnished) | After (D24) |
+|---|---|---|
+| Compact home (1 floor) | 16.7 / 16.7, 584 calls | 16.7 / 16.8, 478 calls |
+| Family home 4-bed (1 floor) | 16.7 / 33.3, 759 | 16.7 / 16.8, 653 |
+| Duplex (2 floors) | 16.7 / 33.4, 1139 | 16.7 / 33.3, 948 |
+| Row house (3 floors) | 16.7 / 16.7, 657 | 16.7 / 16.8, 521 |
+| Villa (2 floors) | **33.3** / 33.4, 1220 | **16.7** / 33.3, 1003 |
+
+**Defects found while building, all fixed before commit:**
+- a ceiling light floated in the stairwell, because its fitting was centred over the void;
+- the duplex flight arrived 0.6 m from a wall, so it was shortened to 25 cm goings for a 1 m landing;
+- the second flight's rail end blocked the row house's first-floor corridor door, so the stair hall
+  was widened;
+- doors swung into stairwells;
+- a verandah house had no front door, because the entrance rule ignored porches with steps;
+- sofas in front of passages in three houses;
+- hiding off-floor furniture by unmounting it caused a 2.2 s stall on remount, so it is now hidden
+  instead.
+
+---
+
 ## Phase 3 — M4 first batch of house templates (2026-10-15)
 
 | Command | Result |

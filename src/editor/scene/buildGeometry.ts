@@ -45,3 +45,33 @@ export function facesToGeometry(faces: Face[]): THREE.BufferGeometry {
 export function polygonGeometry(points: { x: number; y: number }[], y: number, up = true): THREE.BufferGeometry {
   return facesToGeometry([{ role: 'top', normal: [0, up ? 1 : -1, 0], points: points.map((p) => [p.x, y, p.y] as [number, number, number]) }])
 }
+
+/**
+ * Horizontal slab (plan outline with holes, e.g. a stairwell) at height y, facing up or down, with the same
+ * metre UVs as `polygonGeometry` so a floor finish lines up whether or not it has a hole.
+ */
+export function slabGeometry(outline: { x: number; y: number }[], holes: { x: number; y: number }[][], y: number, up = true): THREE.BufferGeometry {
+  if (!holes.length) return polygonGeometry(outline, y, up)
+  const contour = outline.map((q) => new THREE.Vector2(q.x, q.y))
+  const hs = holes.map((h) => h.map((q) => new THREE.Vector2(q.x, q.y)))
+  const tris = THREE.ShapeUtils.triangulateShape(contour, hs)
+  const pts = [...contour, ...hs.flat()]
+  const ny = up ? 1 : -1
+  const pos: number[] = []
+  const uv: number[] = []
+  for (const [a, b, c] of tris) {
+    // plan (x, y) → world (x, z); a counter-clockwise plan triangle faces down in world space
+    const ccw = (pts[b].x - pts[a].x) * (pts[c].y - pts[a].y) - (pts[b].y - pts[a].y) * (pts[c].x - pts[a].x) > 0
+    const order = ccw === up ? [a, c, b] : [a, b, c]
+    for (const i of order) {
+      pos.push(pts[i].x, y, pts[i].y)
+      uv.push(pts[i].x, up ? -pts[i].y : pts[i].y)
+    }
+  }
+  const g = new THREE.BufferGeometry()
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(Array.from({ length: pos.length / 3 }, () => [0, ny, 0]).flat(), 3))
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
+  g.computeBoundingSphere()
+  return g
+}

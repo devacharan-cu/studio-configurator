@@ -4,10 +4,15 @@ import { isOutdoor, type Project } from '../model/types'
 import { COMPACT_HOME } from './houses/compactHome'
 import { CITY_APARTMENT_2BHK } from './houses/cityApartment2'
 import { COURTYARD_HOUSE } from './houses/courtyardHouse'
+import { DUPLEX } from './houses/duplex'
 import { FAMILY_APARTMENT_3BHK } from './houses/familyApartment3'
 import { FAMILY_HOME_4 } from './houses/familyHome4'
 import { L_BUNGALOW } from './houses/lBungalow'
 import { STUDIO_APARTMENT } from './houses/studioApartment'
+import { TOWNHOUSE } from './houses/townhouse'
+import { VILLA } from './houses/villa'
+import { VERANDAH_BUNGALOW } from './houses/verandahBungalow'
+import { APARTMENT_1BHK } from './houses/apartment1bhk'
 import { buildHouse, type HouseSpec } from './spec'
 
 export { EXTERIOR_THICKNESS, INTERIOR_THICKNESS } from './spec'
@@ -49,6 +54,15 @@ export const TEMPLATES: TemplateDef[] = [
     spec: STUDIO_APARTMENT,
   },
   {
+    id: 'apartment-1bhk',
+    name: 'One-bedroom apartment',
+    kind: 'apartment',
+    style: 'Compact urban',
+    description: 'A 1BHK: a foyer with the bathroom off it, a living and dining room onto a balcony, a galley kitchen and a quiet bedroom.',
+    tags: ['1BHK', 'balcony', 'compact', 'rental'],
+    spec: APARTMENT_1BHK,
+  },
+  {
     id: 'city-apartment-2bhk',
     name: 'Two-bedroom city apartment',
     kind: 'apartment',
@@ -76,6 +90,15 @@ export const TEMPLATES: TemplateDef[] = [
     spec: L_BUNGALOW,
   },
   {
+    id: 'verandah-bungalow',
+    name: 'Verandah bungalow',
+    kind: 'house',
+    style: 'Tropical (Kerala sit-out)',
+    description: 'A three-bedroom bungalow behind a full-width shaded verandah: a living room between two front bedrooms, a dining room with the kitchen on one side and a third bedroom and the bathroom on the other.',
+    tags: ['3 bedroom', 'verandah', 'single-storey', 'terracotta', 'tropical'],
+    spec: VERANDAH_BUNGALOW,
+  },
+  {
     id: 'courtyard-house',
     name: 'Courtyard house',
     kind: 'house',
@@ -92,6 +115,33 @@ export const TEMPLATES: TemplateDef[] = [
     description: 'Four bedrooms on one level: living room and an open kitchen-diner with an island along the garden side, a terrace off the living room, a master suite with en-suite and dressing room, a family bath and a laundry off a long corridor.',
     tags: ['4 bedroom', 'open kitchen', 'master suite', 'terrace', 'laundry'],
     spec: FAMILY_HOME_4,
+  },
+  {
+    id: 'duplex',
+    name: 'Contemporary duplex',
+    kind: 'house',
+    style: 'Two-storey contemporary',
+    description: 'A two-storey house: living room, kitchen-diner, family room and a guest suite downstairs, a straight timber stair in a top-lit stair hall, and the master suite, two bedrooms, a family bath and a balcony upstairs.',
+    tags: ['two-storey', 'duplex', '4 bedroom', 'stairs', 'balcony', 'guest suite'],
+    spec: DUPLEX,
+  },
+  {
+    id: 'row-house',
+    name: 'Row house with roof terrace',
+    kind: 'townhouse',
+    style: 'Brick terrace',
+    description: 'A three-level townhouse on a 6 m plot: front room, dining room and a garden kitchen downstairs; two bedrooms and a bathroom on the first floor; a study between a roof garden and a street-side roof terrace at the top — reached by two flights stacked side by side.',
+    tags: ['three-storey', 'townhouse', 'roof terrace', 'narrow plot', 'stairs'],
+    spec: TOWNHOUSE,
+  },
+  {
+    id: 'family-villa',
+    name: 'Two-storey family villa',
+    kind: 'villa',
+    style: 'Sandstone contemporary',
+    description: 'A five-bedroom villa around a central foyer whose broad stair rises to a gallery: living and dining rooms, a kitchen with an island, a family room, a study and a guest suite downstairs; an upper lounge with a balcony, a master suite with dressing room and en-suite, three bedrooms and a family bath upstairs.',
+    tags: ['two-storey', 'villa', '5 bedroom', 'gallery landing', 'master suite', 'balcony'],
+    spec: VILLA,
   },
   {
     id: 'blank',

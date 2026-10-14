@@ -1,4 +1,4 @@
-import type { Id, Item, Level, Node, Opening, Project, Room, Wall } from '../model/types'
+import type { Id, Item, Level, Node, Opening, Project, Room, Stair, Wall } from '../model/types'
 import { validateProject, type ValidationIssue } from '../model/validate'
 
 /**
@@ -20,6 +20,7 @@ export class Draft {
       openings: { ...base.openings },
       items: { ...base.items },
     }
+    if (base.stairs) this.p.stairs = { ...base.stairs }
   }
 
   setNode(n: Node) {
@@ -36,6 +37,17 @@ export class Draft {
   }
   setItem(i: Item) {
     this.p.items[i.id] = i
+  }
+  setStair(s: Stair) {
+    this.p.stairs = { ...this.p.stairs, [s.id]: s }
+  }
+  deleteStair(id: Id) {
+    if (!this.p.stairs?.[id]) return
+    const rest = { ...this.p.stairs }
+    delete rest[id]
+    // single-storey projects keep no `stairs` key at all
+    if (Object.keys(rest).length) this.p.stairs = rest
+    else delete this.p.stairs
   }
   setLevel(l: Level) {
     this.p.levels[l.id] = l

@@ -10,7 +10,8 @@ import { openingsOnWall, roomWalls } from '../../../src/engine/model/query'
 import { isOutdoor } from '../../../src/engine/model/types'
 import { validateProject } from '../../../src/engine/model/validate'
 import { buildTemplate, projectStats, TEMPLATES } from '../../../src/engine/templates'
-import { buildColliders, currentRoom, moveWithCollisions, roomEntries, spawnPoint } from '../../../src/engine/walk'
+import { sortedLevels } from '../../../src/engine/model/query'
+import { buildColliders, currentRoom, roomEntries, spawnPoint, walkStep, type WalkPos } from '../../../src/engine/walk'
 
 /* Invariants every house template must satisfy. A new template is only "in the library" when it passes
  * all of these: valid model, reachable rooms, real assets, furniture inside rooms, daylight, save/load. */
@@ -30,7 +31,7 @@ describe('template library', () => {
 
 describe.each(houses.map((t) => [t.id, t] as const))('template %s', (_id, t) => {
   const p = buildTemplate(t)
-  const level = Object.keys(p.levels)[0]
+  const level = sortedLevels(p)[0].id
 
   it('builds a valid project that saves and restores exactly', () => {
     expect(validateProject(p)).toEqual([])
@@ -55,41 +56,43 @@ describe.each(houses.map((t) => [t.id, t] as const))('template %s', (_id, t) => 
 
   it('furniture stands inside a room, clear of the walls', () => {
     for (const it of Object.values(p.items)) {
-      const room = currentRoom(p, level, it)
+      const room = currentRoom(p, it.level, it)
       expect(room, `${it.asset} at ${it.x},${it.y} is in a room`).toBeTruthy()
       const inner = roomInnerPolygon(p, room!.id)
       for (const c of itemCorners(it, -0.01)) expect(pointInPolygon(c, inner), `${it.asset} at ${it.x},${it.y} inside ${room!.name}`).toBe(true)
     }
   })
 
-  it('has a front door, and every room can be walked to from it', () => {
+  it('has a front door, and every room on every floor can be walked to from it (up the stairs too)', () => {
     expect(entrances(p, level).length).toBeGreaterThan(0)
-    const c = buildColliders(p, level)
+    const cache = new Map<string, ReturnType<typeof buildColliders>>()
+    const col = (l: string) => cache.get(l) ?? (cache.set(l, buildColliders(p, l)), cache.get(l)!)
     const start = spawnPoint(p, level)!
-    const key = (q: { x: number; y: number }) => `${Math.round(q.x * 10)},${Math.round(q.y * 10)}`
-    const seen = new Set([key(start)])
-    const queue = [start]
+    const key = (q: WalkPos) => `${q.level}|${q.stair ?? ''}|${Math.round(q.x * 10)},${Math.round(q.y * 10)}`
+    const first: WalkPos = { ...start, level, stair: null }
+    const seen = new Map([[key(first), first]])
+    const queue = [first]
     while (queue.length) {
       const q = queue.pop()!
       for (const d of [{ x: 0.1, y: 0 }, { x: -0.1, y: 0 }, { x: 0, y: 0.1 }, { x: 0, y: -0.1 }]) {
-        const n = moveWithCollisions(q, d, 0.25, c)
+        const n = walkStep(p, q, d, 0.25, col)
         if (Math.hypot(n.x - q.x - d.x, n.y - q.y - d.y) > 0.02) continue
         // stay on the plot: indoors or within 2 m of the house
-        if (!currentRoom(p, level, n) && !Object.values(p.nodes).some((k) => Math.hypot(k.x - n.x, k.y - n.y) < 3)) continue
-        const k = key(n)
+        if (!n.stair && !currentRoom(p, n.level, n) && !Object.values(p.nodes).some((k) => k.level === n.level && Math.hypot(k.x - n.x, k.y - n.y) < 3)) continue
+        const snapped = { ...n, x: Math.round(n.x * 10) / 10, y: Math.round(n.y * 10) / 10 }
+        const k = key(snapped)
         if (seen.has(k)) continue
-        seen.add(k)
-        queue.push({ x: Math.round(n.x * 10) / 10, y: Math.round(n.y * 10) / 10 })
+        seen.set(k, snapped)
+        queue.push(snapped)
       }
     }
-    for (const e of roomEntries(p, level)) {
-      const near = [...seen].some((k) => {
-        const [x, y] = k.split(',').map((v) => Number(v) / 10)
-        return Math.hypot(x - e.at.x, y - e.at.y) < 0.6
-      })
-      expect(near, `${e.name} reachable from the front door`).toBe(true)
-    }
-  }, 60_000)
+    const reached = [...seen.values()]
+    for (const l of sortedLevels(p))
+      for (const e of roomEntries(p, l.id)) {
+        const near = reached.some((q) => q.level === l.id && !q.stair && Math.hypot(q.x - e.at.x, q.y - e.at.y) < 0.6)
+        expect(near, `${e.name} (${l.name}) reachable from the front door`).toBe(true)
+      }
+  }, 120_000)
 
   it('habitable rooms have daylight (a window or glazed door on their walls)', () => {
     for (const r of Object.values(p.rooms)) {
